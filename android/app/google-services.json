@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "17545052547",
+    "project_id": "mss-dc20b",
+    "storage_bucket": "mss-dc20b.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:17545052547:android:1248c7616040e2e5a6b6b6",
+        "android_client_info": {
+          "package_name": "com.example.mss"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "17545052547-r3u5oa45ifvriu11trafba0gm7rufvc1.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDubXkNwRWpfB_2KDcYYwn6yux5Qn8_JHE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "17545052547-r3u5oa45ifvriu11trafba0gm7rufvc1.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
