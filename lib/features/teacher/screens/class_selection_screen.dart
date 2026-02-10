@@ -5,6 +5,7 @@ import '../../../core/services/auth_service.dart';
 import 'attendance_summary_screen.dart';
 import 'marks_entry_screen.dart';
 import 'attendance_screen.dart';
+import 'student_list_screen.dart';
 
 class ClassSelectionScreen extends StatelessWidget {
   final String assessmentType; // 'Assignment', 'Quiz', 'Exam'
@@ -58,6 +59,16 @@ class ClassSelectionScreen extends StatelessWidget {
             context,
             MaterialPageRoute(
               builder: (context) => AttendanceSummaryScreen(
+                classId: classId,
+                section: section,
+              ),
+            ),
+          );
+        } else if (assessmentType == 'View') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => StudentListScreen(
                 classId: classId,
                 section: section,
               ),

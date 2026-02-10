@@ -1,9 +1,12 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/user_model.dart';
 import '../../../widgets/dashboard_widgets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
+import '../../../core/providers/theme_provider.dart'; // Added this import
+import '../services/teacher_api.dart';
 import 'attendance_screen.dart';
 import 'student_list_screen.dart';
 import 'teacher_schedule_screen.dart';
@@ -20,23 +23,79 @@ class TeacherDashboard extends StatelessWidget {
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
-
     // Use assigned classes from user model
     final classes = user?.assignedClasses ?? [];
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+    final subTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SingleChildScrollView(
-        child: Column(
+    return Container(
+      color: Theme.of(context).scaffoldBackgroundColor,
+      child: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(context, user, authService, textColor, subTextColor), // Passed context here
+              const SizedBox(height: 30),
+              _buildDailyScheduleCard(user),
+              const SizedBox(height: 30),
+               Text(
+                'Quick Actions',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              _buildQuickActionsGrid(context, isDark),
+              const SizedBox(height: 30),
+              _buildPendingTasksSection(textColor, subTextColor, isDark),
+              const SizedBox(height: 30),
+              _buildPerformanceAnalytics(textColor, subTextColor, isDark),
+              const SizedBox(height: 80), 
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context, UserModel? user, AuthService authService, Color textColor, Color subTextColor) { // Added BuildContext context here
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DashboardHeader(
-              name: user?.name ?? 'Teacher',
-              role: 'Teacher',
-              roleColor: AppColors.teacherRole,
-              imageUrl: user?.imageUrl,
-              onLogout: () => authService.signOut(),
-              onAvatarTap: () {
+             Text(
+              'Hello,',
+              style: TextStyle(
+                color: subTextColor,
+                fontSize: 16,
+              ),
+            ),
+            Text(
+              user?.name ?? 'Professor',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        Row(
+          children: [
+            IconButton(
+              onPressed: () {}, // TODO: Notifications
+              icon: Icon(Icons.notifications_none, color: textColor),
+            ),
+            const SizedBox(width: 8),
+            GestureDetector(
+              onTap: () {
                 if (user != null) {
                   Navigator.push(
                     context,
@@ -44,264 +103,200 @@ class TeacherDashboard extends StatelessWidget {
                   );
                 }
               },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // _buildNextClassSection(user), // TODO: Real next class logic
-                  // const SizedBox(height: 32),
-                  // _buildQuickStats(), // TODO: Real stats
-                  // const SizedBox(height: 32),
-                  const Text(
-                    'My Classes',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 16),
-                  if (classes.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20.0),
-                        child: Text(
-                          'No classes assigned yet.\nEnroll students to see classes here.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(color: AppColors.textSecondary),
-                        ),
-                      ),
-                    )
-                  else
-                    GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 2,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: 1.1,
-                      ),
-                      itemCount: classes.length,
-                      itemBuilder: (context, index) {
-                        final cls = classes[index];
-                        return _buildCompactClassCard(context, cls['classId']!, cls['section']!);
-                      },
-                    ),
-                  const SizedBox(height: 40),
-                  const Text(
-                    'Daily Tasks',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildDailyAttendanceCard(context),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Academic Updates',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildAcademicHub(context),
-                  const SizedBox(height: 32),
-                  const Text(
-                    'Management',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildActionCard(
-                          context,
-                          'Enroll Student',
-                          Icons.person_add,
-                          Colors.green,
-                          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStudentScreen())),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: _buildActionCard(
-                          context,
-                          'Schedule',
-                          Icons.calendar_month,
-                          Colors.purple,
-                          () {
-                            if (user != null) {
-                              Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherScheduleScreen(teacher: user)));
-                            }
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+              child: CircleAvatar(
+                radius: 20,
+                backgroundImage: user?.imageUrl != null ? NetworkImage(user!.imageUrl!) : null,
+                child: user?.imageUrl == null ? const Icon(Icons.person) : null,
               ),
             ),
           ],
         ),
-      ),
+      ],
     );
   }
 
-  Widget _buildDailyAttendanceCard(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const ClassSelectionScreen(assessmentType: 'Attendance'),
-          ),
-        );
-      },
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [AppColors.primary, AppColors.primary.withOpacity(0.8)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 6),
-            ),
-          ],
+  Widget _buildDailyScheduleCard(UserModel? user) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2E63F6), Color(0xFF1440C7)], // Blue gradient
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Icon(Icons.playlist_add_check, color: Colors.white, size: 32),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: const [
-                  Text(
-                    "Mark Today's Attendance",
-                    style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  SizedBox(height: 4),
-                  Text(
-                    "Tap to update student records",
-                    style: TextStyle(color: Colors.white70, fontSize: 14),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        borderRadius: BorderRadius.circular(24),
       ),
-    );
-  }
-
-  Widget _buildAcademicHub(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildAcademicCard(
-            context,
-            'Assignments',
-            Icons.assignment,
-            Colors.blue,
-            () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Assignments'))),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Daily Schedule',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              GestureDetector(
+                onTap: () {
+                  // View Calendar
+                },
+                child: const Text(
+                  'View Calendar',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 16),
-          _buildAcademicCard(
-            context,
-            'Quizzes',
-            Icons.quiz,
-            Colors.orange,
-            () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Quizzes'))),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+               Container(
+                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                 decoration: BoxDecoration(
+                   color: Colors.white24,
+                   borderRadius: BorderRadius.circular(8),
+                 ),
+                 child: const Text('UP NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+               ),
+               const Spacer(),
+               const Icon(Icons.location_on, color: Colors.white70, size: 14),
+               const SizedBox(width: 4),
+               const Text('Room 402', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
           ),
-          const SizedBox(width: 16),
-          _buildAcademicCard(
-            context,
-            'Exams',
-            Icons.assignment_turned_in,
-            Colors.red,
-            () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Exams'))),
+          const SizedBox(height: 12),
+          const Text(
+            'Advanced Mathematics',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const Text(
+            'Grade 10B • Calculus & Geometry',
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                   Icon(Icons.access_time, color: Colors.white70, size: 16),
+                   SizedBox(width: 6),
+                   Text('10:30 AM - 11:45 AM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
+                ],
+              ),
+              ElevatedButton(
+                onPressed: () {},
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: const Color(0xFF1440C7),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  minimumSize: const Size(0, 36),
+                ),
+                child: const Text('PREPARE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  Widget _buildAcademicCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildQuickActionsGrid(BuildContext context, bool isDark) {
+    return GridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: 2,
+      crossAxisSpacing: 16,
+      mainAxisSpacing: 16,
+      childAspectRatio: 1.4,
+      children: [
+        _buildDarkActionCard(
+          context,
+          'Attendance',
+          Icons.person_outline,
+          Colors.blue,
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Attendance'))),
+          isDark
+        ),
+        _buildDarkActionCard(
+          context,
+          'Results',
+          Icons.description_outlined,
+          Colors.green,
+          // For now, let's open marks entry, user might want a specific results view later
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Exam'))),
+          isDark
+        ),
+        _buildDarkActionCard(
+          context,
+          'Assignments',
+          Icons.assignment_outlined,
+          Colors.purple,
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Assignment'))),
+          isDark
+        ),
+        _buildDarkActionCard(
+          context,
+          'Notices',
+          Icons.campaign_outlined,
+          Colors.orange,
+          () {}, // TODO: Notices screen
+          isDark
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDarkActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap, bool isDark) {
     return InkWell(
       onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        width: 140,
-        height: 160,
-        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isDark ? const Color(0xFF161822) : Colors.white, // Dark card bg vs white
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.grey.withOpacity(0.1)),
-          boxShadow: [
+          border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1)),
+          boxShadow: isDark ? [] : [
             BoxShadow(
-              color: Colors.black.withOpacity(0.03),
+              color: Colors.black.withOpacity(0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withOpacity(0.1), // Translucent accent
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: color, size: 24),
             ),
-            const Spacer(),
+            const SizedBox(height: 12),
             Text(
               title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Update',
-              style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: color.withOpacity(0.1)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: color, size: 20),
-            const SizedBox(width: 8),
-            Flexible(
-              child: Text(
-                title,
-                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 14),
-                overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: isDark ? Colors.white70 : AppColors.textPrimary,
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
               ),
             ),
           ],
@@ -310,90 +305,167 @@ class TeacherDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildCompactClassCard(BuildContext context, String classId, String section) {
-    return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => AttendanceScreen(classId: classId, section: section)),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPendingTasksSection(Color textColor, Color subTextColor, bool isDark) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.teacherRole.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-              child: const Icon(Icons.school_outlined, color: AppColors.teacherRole, size: 20),
+             Text(
+              'Pending Tasks',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-            const Spacer(),
-            Text('Class $classId-$section', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
-            const SizedBox(height: 4),
-            Row(
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.blue.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Text('2 New', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _buildTaskTile('Grade Submissions', '14 pending for Algebra II', Icons.error_outline, Colors.red, textColor, subTextColor, isDark),
+        const SizedBox(height: 12),
+        _buildTaskTile('Attendance Missing', '9B Homeroom • Yesterday', Icons.calendar_today, Colors.blue, textColor, subTextColor, isDark),
+        const SizedBox(height: 12),
+        _buildTaskTile('Staff Meeting', '2nd Floor • Principal\'s Office', Icons.groups, Colors.orange, textColor, subTextColor, isDark),
+      ],
+    );
+  }
+
+  Widget _buildTaskTile(String title, String subtitle, IconData icon, Color color, Color textColor, Color subTextColor, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161822) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: isDark ? [] : [
+             BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.people_outline, size: 12, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                StreamBuilder<List<StudentModel>>(
-                  stream: StudentApi().getStudentsByClass(classId, section),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Text('...', style: TextStyle(fontSize: 10, color: AppColors.textSecondary));
-                    }
-                    final count = snapshot.data!.length;
-                    return Text('$count Students', style: const TextStyle(fontSize: 10, color: AppColors.textSecondary));
-                  },
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => StudentListScreen(classId: classId, section: section)),
-                  ),
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: Colors.orange.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                    child: const Icon(Icons.people, size: 14, color: Colors.orange),
-                  ),
-                ),
+                Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: TextStyle(color: subTextColor, fontSize: 12)),
               ],
             ),
-          ],
-        ),
+          ),
+          Icon(Icons.arrow_forward_ios, color: subTextColor, size: 14),
+        ],
       ),
     );
   }
 
-  Widget _buildClassAction(BuildContext context, String label, IconData icon, Color color, VoidCallback onTap) {
-    return InkWell(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: color.withValues(alpha: 0.1)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+  Widget _buildPerformanceAnalytics(Color textColor, Color subTextColor, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF161822) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: isDark ? [] : [
+             BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+           Text(
+            'Performance Analytics',
+            style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          _buildAnalyticsRow('Attendance Rate', '94%', 0.94, Colors.blue, subTextColor),
+          const SizedBox(height: 20),
+          _buildAnalyticsRow('Assignments Completed', '82%', 0.82, Colors.purple, subTextColor),
+          const SizedBox(height: 20),
+           Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Quiz Scores (Avg)', style: TextStyle(color: subTextColor, fontSize: 12)),
+              const Text('78.5', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Simple visual bar chart placeholder
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              _buildBar(40, Colors.green),
+              _buildBar(60, Colors.green),
+              _buildBar(30, Colors.green),
+              _buildBar(80, Colors.purple), // Highlight
+              _buildBar(50, Colors.green),
+              _buildBar(70, Colors.green),
+              _buildBar(45, Colors.green),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalyticsRow(String label, String value, double percentage, Color color, Color subTextColor) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(label, style: TextStyle(color: subTextColor, fontSize: 12)),
+            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
           ],
         ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: percentage,
+            backgroundColor: Colors.grey.withOpacity(0.1),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+            minHeight: 6,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBar(double height, Color color) {
+    return Container(
+      width: 6,
+      height: height / 2, // Scale down
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(4),
       ),
     );
   }
 }
+

@@ -3,10 +3,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/student_model.dart';
 import '../models/user_model.dart';
+import '../services/notification_service.dart';
 
 class AuthService extends ChangeNotifier {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  // Helper to save FCM Token
+  Future<void> _saveDeviceToken(String uid) async {
+    try {
+      String? token = await NotificationService().getToken();
+      if (token != null) {
+        await _firestore.collection('users').doc(uid).update({'fcmToken': token});
+      }
+    } catch (e) {
+      print("Error saving FCM token: $e");
+    }
+  }
 
   UserModel? _currentUser;
   UserModel? get currentUser => _currentUser;
@@ -56,6 +69,7 @@ class AuthService extends ChangeNotifier {
 
         // 3. Save to Firestore
         await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
+        await _saveDeviceToken(user.uid); // Save token
         
         _currentUser = newUser;
         notifyListeners();
@@ -98,23 +112,27 @@ class AuthService extends ChangeNotifier {
       final snapshot = await _firestore
           .collection('students')
           .where('parentEmail', isEqualTo: email)
-          .where('parentPassword', isEqualTo: password)
-          .limit(1)
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        final student = StudentModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
-        _currentStudent = student;
-        // Create a temporary user session for AuthWrapper
-        _currentUser = UserModel(
-          uid: student.id,
-          email: email,
-          name: "Parent of ${student.name.split(' ')[0]}",
-          role: 'parent',
-          createdAt: DateTime.now(),
-        );
-        notifyListeners();
-        return student;
+        final doc = snapshot.docs.first;
+        final data = doc.data();
+        
+        // Verify password in memory to avoid needing a Firestore composite index
+        if (data['parentPassword'] == password) {
+          final student = StudentModel.fromMap(data, doc.id);
+          _currentStudent = student;
+          // Create a temporary user session for AuthWrapper
+          _currentUser = UserModel(
+            uid: student.id,
+            email: email,
+            name: "Parent of ${student.name.split(' ')[0]}",
+            role: 'parent',
+            createdAt: DateTime.now(),
+          );
+          notifyListeners();
+          return student;
+        }
       }
       return null;
     } catch (e) {
@@ -129,6 +147,12 @@ class AuthService extends ChangeNotifier {
       DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
         _currentUser = UserModel.fromMap(doc.data() as Map<String, dynamic>);
+        
+        // If user is a student, try to fetch their academic record
+        if (_currentUser!.role == 'student') {
+          await _fetchStudentData(_currentUser!.email);
+        }
+        
         _isInitializing = false;
         notifyListeners();
         return null; // Success
@@ -141,6 +165,22 @@ class AuthService extends ChangeNotifier {
       _isInitializing = false;
       notifyListeners();
       return e.toString();
+    }
+  }
+
+  Future<void> _fetchStudentData(String email) async {
+    try {
+      final snapshot = await _firestore
+          .collection('students')
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isNotEmpty) {
+        _currentStudent = StudentModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
+      }
+    } catch (e) {
+      print("Error fetching student data: $e");
     }
   }
 

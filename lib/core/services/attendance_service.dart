@@ -25,27 +25,39 @@ class AttendanceService {
     return _firestore
         .collection('attendance')
         .where('studentId', isEqualTo: studentId)
-        .orderBy('date', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
+        .map((snapshot) {
+          final records = snapshot.docs
             .map((doc) => AttendanceRecord.fromMap(doc.data(), doc.id))
-            .toList());
+            .toList();
+          // Sort in memory to avoid needing a Firestore index for equality + orderBy
+          records.sort((a, b) => b.date.compareTo(a.date));
+          return records;
+        });
   }
 
   // Fetch attendance for a class on a specific date (for Teachers)
   Future<List<AttendanceRecord>> getClassAttendance(String classId, DateTime date) async {
-    DateTime startOfDay = DateTime(date.year, date.month, date.day);
-    DateTime endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+    try {
+      // We fetch by classId only to avoid the composite index error for (classId + date range)
+      // This is a temporary fix to make the app work immediately for the user.
+      QuerySnapshot snapshot = await _firestore
+          .collection('attendance')
+          .where('classId', isEqualTo: classId)
+          .get();
 
-    QuerySnapshot snapshot = await _firestore
-        .collection('attendance')
-        .where('classId', isEqualTo: classId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThanOrEqualTo: Timestamp.fromDate(endOfDay))
-        .get();
+      final allRecords = snapshot.docs
+          .map((doc) => AttendanceRecord.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList();
 
-    return snapshot.docs
-        .map((doc) => AttendanceRecord.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList();
+      // Filter by date in memory
+      return allRecords.where((record) {
+        return record.date.year == date.year &&
+               record.date.month == date.month &&
+               record.date.day == date.day;
+      }).toList();
+    } catch (e) {
+      rethrow;
+    }
   }
 }

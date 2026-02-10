@@ -19,4 +19,13 @@ class AppColors {
   static const Color teacherRole = Color(0xFF22A6B3); // Teal
   static const Color headTeacherRole = Color(0xFFF0932B); // Orange
   static const Color parentRole = Color(0xFFEB4D4B); // Red
+
+  // Dark Theme Colors
+  static const Color darkBackground = Color(0xFF1A1A2E); // Dark Navy
+  static const Color cardDark = Color(0xFF16213E); // Slightly lighter navy for cards
+  static const Color accentBlue = Color(0xFF4Ecca3); // Mint/Teal accent
+  static const Color accentPurple = Color(0xFFBB86FC); // Light Purple
+  static const Color textLight = Color(0xFFE94560); // Reddish Pink (accent) - wait, standard text should be white
+  static const Color textWhite = Colors.white;
+  static const Color textGrey = Colors.grey;
 }

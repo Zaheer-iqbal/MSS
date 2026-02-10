@@ -3,6 +3,7 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/dashboard_widgets.dart';
+import '../../school/services/school_api.dart';
 import 'staff_list_screen.dart';
 
 class HeadDashboard extends StatelessWidget {
@@ -46,28 +47,34 @@ class HeadDashboard extends StatelessWidget {
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                     childAspectRatio: 1.2,
-                    children: const [
-                      StatCard(
-                        title: 'Total Students',
-                        value: '850',
-                        icon: Icons.school,
-                        color: Colors.indigo,
+                    children: [
+                      StreamBuilder<int>(
+                        stream: SchoolApi().getStudentCount(),
+                        builder: (context, snapshot) => StatCard(
+                          title: 'Total Students',
+                          value: '${snapshot.data ?? 0}',
+                          icon: Icons.school,
+                          color: Colors.indigo,
+                        ),
                       ),
-                      StatCard(
-                        title: 'Total Staff',
-                        value: '45',
-                        icon: Icons.badge,
-                        color: Colors.teal,
+                      StreamBuilder<int>(
+                        stream: SchoolApi().getTeacherCount(),
+                        builder: (context, snapshot) => StatCard(
+                          title: 'Total Staff',
+                          value: '${snapshot.data ?? 0}',
+                          icon: Icons.badge,
+                          color: Colors.teal,
+                        ),
                       ),
-                      StatCard(
+                      const StatCard(
                         title: 'Fee Status',
-                        value: '78%',
+                        value: '78%', // Placeholder
                         icon: Icons.account_balance_wallet,
                         color: Colors.orange,
                       ),
-                      StatCard(
+                      const StatCard(
                         title: 'Rating',
-                        value: '4.8',
+                        value: '4.8', // Placeholder
                         icon: Icons.star,
                         color: Colors.amber,
                       ),

@@ -23,6 +23,7 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
   late TextEditingController _rollNoController;
   late TextEditingController _classController;
   late TextEditingController _sectionController;
+  late TextEditingController _emailController; // Student Email
   late TextEditingController _parentEmailController;
   late TextEditingController _parentPasswordController;
   late TextEditingController _fatherNameController;
@@ -38,11 +39,19 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     _rollNoController = TextEditingController(text: widget.student?.rollNo);
     _classController = TextEditingController(text: widget.student?.classId);
     _sectionController = TextEditingController(text: widget.student?.section);
+    _emailController = TextEditingController(text: widget.student?.email);
     _parentEmailController = TextEditingController(text: widget.student?.parentEmail);
     _parentPasswordController = TextEditingController(text: widget.student?.parentPassword);
     _fatherNameController = TextEditingController(text: widget.student?.fatherName);
     _phoneController = TextEditingController(text: widget.student?.phone);
     _addressController = TextEditingController(text: widget.student?.address);
+
+    // Auto-sync password with email
+    _parentEmailController.addListener(() {
+      if (widget.student == null) {
+         _parentPasswordController.text = _parentEmailController.text;
+      }
+    });
   }
 
   @override
@@ -51,6 +60,7 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     _rollNoController.dispose();
     _classController.dispose();
     _sectionController.dispose();
+    _emailController.dispose();
     _parentEmailController.dispose();
     _parentPasswordController.dispose();
     _fatherNameController.dispose();
@@ -69,6 +79,7 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
         rollNo: _rollNoController.text.trim(),
         classId: _classController.text.trim(),
         section: _sectionController.text.trim(),
+        email: _emailController.text.trim(),
         parentEmail: _parentEmailController.text.trim(),
         parentPassword: _parentPasswordController.text.trim(),
         fatherName: _fatherNameController.text.trim(),
@@ -80,6 +91,7 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
         midTermMarks: widget.student?.midTermMarks ?? {},
         finalTermMarks: widget.student?.finalTermMarks ?? {},
         createdAt: widget.student?.createdAt ?? DateTime.now(),
+        updatedAt: DateTime.now(),
       );
 
       try {
@@ -183,25 +195,27 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               const SizedBox(height: 32),
               _buildTextField(_nameController, 'Full Name', Icons.person),
               const SizedBox(height: 16),
+              _buildTextField(_emailController, 'Student Email (Optional)', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
+              const SizedBox(height: 16),
+              _buildTextField(_fatherNameController, 'Father Name', Icons.person_outline),
+              const SizedBox(height: 16),
               Row(
                 children: [
                   Expanded(child: _buildTextField(_rollNoController, 'Roll No', Icons.numbers)),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField(_classController, 'Class', Icons.class_)),
+                  Expanded(child: _buildClassDropdown()),
                 ],
               ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_sectionController, 'Section', Icons.grid_view)),
-                  const SizedBox(width: 16),
-                  Expanded(child: _buildTextField(_parentEmailController, 'Parent Email', Icons.email, keyboardType: TextInputType.emailAddress)),
+                   Expanded(child: _buildTextField(_sectionController, 'Section', Icons.grid_view)),
+                   const SizedBox(width: 16),
+                   Expanded(child: _buildTextField(_parentEmailController, 'Parent Email', Icons.email, keyboardType: TextInputType.emailAddress)),
                 ],
               ),
               const SizedBox(height: 16),
-              _buildTextField(_parentPasswordController, 'Parent Password (Official)', Icons.lock_outline),
-              const SizedBox(height: 16),
-              _buildTextField(_fatherNameController, 'Father Name', Icons.person_outline),
+              _buildTextField(_parentPasswordController, 'Parent Password', Icons.lock_outline),
               const SizedBox(height: 16),
               Row(
                 children: [
@@ -228,6 +242,28 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildClassDropdown() {
+    final classes = ['1st', '2nd', '3rd', '4th', '5th'];
+    // Ensure current value is in list
+    if (_classController.text.isNotEmpty && !classes.contains(_classController.text)) {
+      classes.add(_classController.text);
+    }
+    
+    return DropdownButtonFormField<String>(
+      value: _classController.text.isEmpty ? null : _classController.text,
+      decoration: InputDecoration(
+        labelText: 'Class',
+        prefixIcon: const Icon(Icons.class_, color: AppColors.primary),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+        filled: true,
+        fillColor: Colors.white,
+      ),
+      items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+      onChanged: (value) => setState(() => _classController.text = value ?? ''),
+      validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
     );
   }
 

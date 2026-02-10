@@ -2,30 +2,32 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/constants/app_colors.dart';
+import '../core/providers/theme_provider.dart';
 import '../features/auth/screens/role_selection_screen.dart';
+import '../features/auth/screens/splash_screen.dart';
 import '../features/school/screens/school_dashboard.dart';
-import '../features/teacher/screens/teacher_dashboard.dart';
+import '../features/teacher/screens/teacher_main_screen.dart';
 import '../features/head_teacher/screens/head_dashboard.dart';
 import '../features/parent/screens/parent_dashboard.dart';
+import '../features/student/screens/student_main_screen.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: MaterialApp(
         title: 'MSS School',
-        theme: ThemeData(
-          primaryColor: AppColors.primary,
-          scaffoldBackgroundColor: AppColors.background,
-          useMaterial3: true,
-          fontFamily: 'Inter',
-        ),
-        home: const AuthWrapper(),
+        themeMode: themeProvider.themeMode,
+        theme: ThemeProvider.lightTheme,
+        darkTheme: ThemeProvider.darkTheme,
+        home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
       ),
     );
@@ -57,7 +59,13 @@ class AuthWrapper extends StatelessWidget {
       case 'school':
         return const SchoolDashboard();
       case 'teacher':
-        return const TeacherDashboard();
+        return const TeacherMainScreen();
+      case 'student':
+        if (authService.currentStudent != null) {
+           return StudentMainScreen(student: authService.currentStudent!);
+        }
+        // Fallback if student data is missing but role is student (shouldn't happen ideally)
+        return const RoleSelectionScreen(); 
       case 'head_teacher':
         return const HeadDashboard();
       case 'parent':

@@ -27,11 +27,21 @@ class StudentApi {
     return _firestore
         .collection('students')
         .where('classId', isEqualTo: classId)
-        .where('section', isEqualTo: section)
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+            .where((student) => student.section.toLowerCase() == section.toLowerCase())
             .toList());
+  }
+
+  // Get a single student by ID as a stream
+  Stream<StudentModel?> streamStudentById(String id) {
+    return _firestore.collection('students').doc(id).snapshots().map((doc) {
+      if (doc.exists) {
+        return StudentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
+      }
+      return null;
+    });
   }
 
   // Get a single student by ID
@@ -53,6 +63,15 @@ class StudentApi {
         .collection('students')
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThanOrEqualTo: '$query\uf8ff')
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+            .toList());
+  }
+  // Get all students
+  Stream<List<StudentModel>> getAllStudents() {
+    return _firestore
+        .collection('students')
         .snapshots()
         .map((snapshot) => snapshot.docs
             .map((doc) => StudentModel.fromMap(doc.data(), doc.id))

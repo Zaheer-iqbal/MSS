@@ -52,7 +52,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
               stream: _searchQuery.isEmpty 
                 ? (widget.classId != null 
                     ? _studentApi.getStudentsByClass(widget.classId!, widget.section!)
-                    : _studentApi.getStudentsByClass('10', 'A')) // Fallback for now
+                    : _studentApi.getAllStudents()) // Changed to getAllStudents or similar if available, or just empty list with message
                 : _studentApi.searchStudents(_searchQuery),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

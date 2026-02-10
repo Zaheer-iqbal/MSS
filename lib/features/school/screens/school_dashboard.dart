@@ -3,6 +3,9 @@ import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import 'package:provider/provider.dart';
 import '../../../widgets/dashboard_widgets.dart';
+import '../../head_teacher/screens/staff_list_screen.dart';
+import '../../teacher/screens/student_list_screen.dart';
+import '../services/school_api.dart';
 
 class SchoolDashboard extends StatelessWidget {
   const SchoolDashboard({super.key});
@@ -45,28 +48,34 @@ class SchoolDashboard extends StatelessWidget {
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
                     childAspectRatio: 1.2,
-                    children: const [
-                      StatCard(
+                    children: [
+                      const StatCard(
                         title: 'Revenue (MTD)',
-                        value: '₹12.5L',
+                        value: '₹0', // Placeholder
                         icon: Icons.currency_rupee,
                         color: Colors.green,
                       ),
-                      StatCard(
-                        title: 'Active Students',
-                        value: '1,240',
-                        icon: Icons.people_alt,
-                        color: Colors.blue,
+                      StreamBuilder<int>(
+                        stream: SchoolApi().getStudentCount(),
+                        builder: (context, snapshot) => StatCard(
+                          title: 'Active Students',
+                          value: '${snapshot.data ?? 0}',
+                          icon: Icons.people_alt,
+                          color: Colors.blue,
+                        ),
                       ),
-                      StatCard(
-                        title: 'Total Teachers',
-                        value: '86',
-                        icon: Icons.record_voice_over,
-                        color: Colors.purple,
+                      StreamBuilder<int>(
+                        stream: SchoolApi().getTeacherCount(),
+                        builder: (context, snapshot) => StatCard(
+                          title: 'Total Teachers',
+                          value: '${snapshot.data ?? 0}',
+                          icon: Icons.record_voice_over,
+                          color: Colors.purple,
+                        ),
                       ),
-                      StatCard(
+                      const StatCard(
                         title: 'Pending Apps',
-                        value: '24',
+                        value: '0', // Placeholder
                         icon: Icons.pending_actions,
                         color: Colors.orange,
                       ),
@@ -93,7 +102,10 @@ class SchoolDashboard extends StatelessWidget {
                         label: 'Academics',
                         icon: Icons.history_edu,
                         color: AppColors.schoolRole,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const StudentListScreen()),
+                        ),
                       ),
                       ActionIcon(
                         label: 'Finance',
@@ -105,7 +117,10 @@ class SchoolDashboard extends StatelessWidget {
                         label: 'HR / Staff',
                         icon: Icons.groups,
                         color: AppColors.schoolRole,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const StaffListScreen()),
+                        ),
                       ),
                       ActionIcon(
                         label: 'Inventory',

@@ -8,6 +8,8 @@ import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
 import '../services/teacher_api.dart';
 
+import '../../../core/providers/theme_provider.dart';
+
 class TeacherProfileScreen extends StatefulWidget {
   final UserModel user;
   const TeacherProfileScreen({super.key, required this.user});
@@ -126,13 +128,25 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    final isDark = themeProvider.isDarkMode;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.textPrimary,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: () {
+              themeProvider.toggleTheme(!isDark);
+            },
+            icon: Icon(isDark ? Icons.light_mode : Icons.dark_mode),
+            tooltip: 'Toggle Theme',
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -229,33 +243,39 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   }
 
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool enabled = true, TextInputType? keyboardType, int maxLines = 1}) {
+    final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
+    final bgColor = isDark ? const Color(0xFF161822) : Colors.white;
+    final textColor = isDark ? Colors.white : AppColors.textPrimary;
+
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
+        boxShadow: isDark ? [] : [
+           BoxShadow(
             color: Colors.black.withOpacity(0.03),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
+        border: isDark ? Border.all(color: Colors.white10) : null,
       ),
       child: TextFormField(
         controller: controller,
         enabled: enabled,
         keyboardType: keyboardType,
         maxLines: maxLines,
+        style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          labelStyle: TextStyle(color: isDark ? Colors.white54 : AppColors.textSecondary, fontSize: 14),
           prefixIcon: Icon(icon, color: AppColors.teacherRole, size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: enabled ? Colors.white : Colors.grey.withOpacity(0.05),
+          fillColor: enabled ? bgColor : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05)),
           contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
         ),
         validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
