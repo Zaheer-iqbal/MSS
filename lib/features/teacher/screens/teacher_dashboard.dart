@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/models/user_model.dart';
+import '../../../core/services/attendance_service.dart';
 import '../../../widgets/dashboard_widgets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
@@ -16,15 +17,92 @@ import 'class_selection_screen.dart';
 import '../../student/services/student_api.dart';
 import '../../../core/models/student_model.dart';
 
-class TeacherDashboard extends StatelessWidget {
+class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
+
+  @override
+  State<TeacherDashboard> createState() => _TeacherDashboardState();
+}
+
+class _TeacherDashboardState extends State<TeacherDashboard> {
+  final AttendanceService _attendanceService = AttendanceService();
+  Map<String, int> _attendanceStats = {'present': 0, 'absent': 0, 'total': 0};
+  bool _isLoading = true;
+
+  UserModel? _currentUser;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final user = Provider.of<AuthService>(context).currentUser;
+    if (user != _currentUser) {
+      _currentUser = user;
+      _fetchDashboardData();
+    }
+  }
+
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+    setState(() => _isLoading = true);
+
+    final user = _currentUser;
+    
+    if (user != null && user.assignedClasses != null && user.assignedClasses!.isNotEmpty) {
+      try {
+        // In a real app, might aggregate or select specifically
+        final classInfo = user.assignedClasses.isNotEmpty ? user.assignedClasses.first : null;
+        
+        if (classInfo != null && classInfo is Map) {
+          // The model defines assignedClasses as List<Map<String, dynamic>> or List<Map<String, String>>
+          // fromMap casts it to List<Map<String, String>>
+          final classId = classInfo['classId'] ?? '';
+          final section = classInfo['section'] ?? '';
+          
+          if (classId.isNotEmpty && section.isNotEmpty) {
+             String compositeId = "${classId}_$section".toLowerCase();
+             print("Fetching dashboard data for: $compositeId"); // Debug log
+
+             final records = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
+             
+             int present = 0;
+             int absent = 0;
+             for (var r in records) {
+               if (r.status == 'present') present++;
+               else if (r.status == 'absent') absent++;
+             }
+             
+             if (mounted) {
+               setState(() {
+                 _attendanceStats = {
+                   'present': present,
+                   'absent': absent,
+                   'total': records.length
+                 };
+                 _isLoading = false;
+               });
+             }
+          } else {
+             print("ClassId or Section is empty");
+             if (mounted) setState(() => _isLoading = false);
+          }
+        } else {
+           print("ClassInfo is null or invalid");
+           if (mounted) setState(() => _isLoading = false);
+        }
+      } catch (e) {
+        print("Error fetching dashboard attendance: $e");
+        if (mounted) setState(() => _isLoading = false);
+      }
+    } else {
+      print("User is null or has no assigned classes");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
-    // Use assigned classes from user model
-    final classes = user?.assignedClasses ?? [];
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final subTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
@@ -32,31 +110,34 @@ class TeacherDashboard extends StatelessWidget {
     return Container(
       color: Theme.of(context).scaffoldBackgroundColor,
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(context, user, authService, textColor, subTextColor), // Passed context here
-              const SizedBox(height: 30),
-              _buildDailyScheduleCard(user),
-              const SizedBox(height: 30),
-               Text(
-                'Quick Actions',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+        child: RefreshIndicator(
+          onRefresh: _fetchDashboardData,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(context, user, authService, textColor, subTextColor),
+                const SizedBox(height: 24),
+                _buildAttendanceSummaryCard(isDark),
+                const SizedBox(height: 24),
+                 Text(
+                  'Quick Actions',
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              _buildQuickActionsGrid(context, isDark),
-              const SizedBox(height: 30),
-              _buildPendingTasksSection(textColor, subTextColor, isDark),
-              const SizedBox(height: 30),
-              _buildPerformanceAnalytics(textColor, subTextColor, isDark),
-              const SizedBox(height: 80), 
-            ],
+                const SizedBox(height: 16),
+                _buildQuickActionsGrid(context, isDark),
+                const SizedBox(height: 30),
+                _buildDailyScheduleCard(user),
+                const SizedBox(height: 30),
+                _buildPendingTasksSection(textColor, subTextColor, isDark),
+                const SizedBox(height: 80), 
+              ],
+            ),
           ),
         ),
       ),
@@ -112,6 +193,120 @@ class TeacherDashboard extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildAttendanceSummaryCard(bool isDark) {
+    final total = _attendanceStats['total'] ?? 0;
+    final present = _attendanceStats['present'] ?? 0;
+    final absent = _attendanceStats['absent'] ?? 0;
+    // Calculate percentage, default to 0 if total is 0
+    final percent = total > 0 ? ((present / total) * 100).toInt() : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2130) : Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 15,
+              offset: const Offset(0, 5),
+            ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Circular indicator
+          SizedBox(
+            width: 80,
+            height: 80,
+            child: Stack(
+              children: [
+                Center(
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: CircularProgressIndicator(
+                      value: 1.0,
+                      color: isDark ? Colors.grey[800] : Colors.grey[100],
+                      strokeWidth: 8,
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SizedBox(
+                    width: 80,
+                    height: 80,
+                    child: CircularProgressIndicator(
+                      value: total > 0 ? present / total : 0,
+                      color: AppColors.teacherRole,
+                      backgroundColor: Colors.transparent,
+                      strokeWidth: 8,
+                      strokeCap: StrokeCap.round,
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    "$percent%",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  "Attendance",
+                  style: TextStyle(
+                    fontSize: 16, 
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildStatBadge("$present Present", Colors.blue),
+                    const SizedBox(width: 8),
+                    _buildStatBadge("$absent Absent", Colors.orange),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  "Today, ${DateTime.now().day}/${DateTime.now().month}",
+                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatBadge(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+      ),
     );
   }
 
@@ -252,10 +447,10 @@ class TeacherDashboard extends StatelessWidget {
         ),
         _buildDarkActionCard(
           context,
-          'Notices',
-          Icons.campaign_outlined,
+          'Students',
+          Icons.people_outline,
           Colors.orange,
-          () {}, // TODO: Notices screen
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Student List'))),
           isDark
         ),
       ],

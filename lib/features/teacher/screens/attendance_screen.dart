@@ -6,6 +6,7 @@ import '../../../core/models/student_model.dart';
 import '../../../core/services/attendance_service.dart';
 import '../../../core/services/auth_service.dart';
 import '../../student/services/student_api.dart';
+import 'attendance_summary_screen.dart';
 
 class AttendanceScreen extends StatefulWidget {
   final String classId;
@@ -30,9 +31,32 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   final Map<String, String> _attendanceMap = {};
   List<StudentModel> _students = [];
 
+  bool _checkingStatus = true;
+
   @override
   void initState() {
     super.initState();
+    _checkTodayAttendance();
+  }
+
+  Future<void> _checkTodayAttendance() async {
+    final compositeId = "${widget.classId}_${widget.section}".toLowerCase();
+    final todayRecords = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
+    
+    if (todayRecords.isNotEmpty && mounted) {
+      // Attendance already marked, redirect to summary
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => AttendanceSummaryScreen(
+            classId: widget.classId,
+            section: widget.section,
+          ),
+        ),
+      );
+    } else {
+      if (mounted) setState(() => _checkingStatus = false);
+    }
   }
 
   Future<void> _saveAttendance() async {
@@ -64,7 +88,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             behavior: SnackBarBehavior.floating,
           ),
         );
-        Navigator.pop(context);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => AttendanceSummaryScreen(
+              classId: widget.classId,
+              section: widget.section,
+            ),
+          ),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -79,6 +111,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_checkingStatus) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

@@ -132,11 +132,19 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      backgroundColor: Theme
+          .of(context)
+          .scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
-        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
+        backgroundColor: Theme
+            .of(context)
+            .appBarTheme
+            .backgroundColor,
+        foregroundColor: Theme
+            .of(context)
+            .appBarTheme
+            .foregroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -156,13 +164,19 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
             children: [
               _buildImagePicker(),
               const SizedBox(height: 40),
-              _buildTextField(_nameController, 'Full Name', Icons.person_outline),
+              _buildTextField(
+                  _nameController, 'Full Name', Icons.person_outline),
               const SizedBox(height: 20),
-              _buildTextField(_emailController, 'Email Address', Icons.email_outlined, enabled: false),
+              _buildTextField(
+                  _emailController, 'Email Address', Icons.email_outlined,
+                  enabled: false),
               const SizedBox(height: 20),
-              _buildTextField(_phoneController, 'Phone Number', Icons.phone_outlined, keyboardType: TextInputType.phone),
+              _buildTextField(
+                  _phoneController, 'Phone Number', Icons.phone_outlined,
+                  keyboardType: TextInputType.phone),
               const SizedBox(height: 20),
-              _buildTextField(_addressController, 'Home Address', Icons.location_on_outlined, maxLines: 3),
+              _buildTextField(_addressController, 'Home Address',
+                  Icons.location_on_outlined, maxLines: 3),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
@@ -172,12 +186,35 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.teacherRole,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16)),
                     elevation: 2,
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('SAVE PROFILE', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      : const Text('SAVE PROFILE', style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    await Provider.of<AuthService>(context, listen: false).signOut();
+                    if (context.mounted) {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.red,
+                    side: const BorderSide(color: Colors.red),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('LOGOUT', style: TextStyle(
+                      fontWeight: FontWeight.bold, letterSpacing: 1.2)),
                 ),
               ),
               const SizedBox(height: 20),
@@ -241,6 +278,7 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       ),
     );
   }
+
 
   Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool enabled = true, TextInputType? keyboardType, int maxLines = 1}) {
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;

@@ -7,6 +7,7 @@ import 'student_list_screen.dart';
 import 'manage_student_screen.dart';
 import 'class_selection_screen.dart';
 import 'chat_list_screen.dart';
+import 'enroll_student_screen.dart';
 
 class TeacherMainScreen extends StatefulWidget {
   const TeacherMainScreen({super.key});
@@ -23,7 +24,7 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
     const ClassSelectionScreen(assessmentType: 'View'), // Changed from generic 'Classes'
     const StudentListScreen(), 
     const ChatListScreen(), 
-    const ManageStudentScreen(),
+    const EnrollStudentScreen(),
   ];
 
   @override

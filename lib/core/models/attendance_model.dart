@@ -31,11 +31,24 @@ class AttendanceRecord {
   }
 
   factory AttendanceRecord.fromMap(Map<String, dynamic> map, String id) {
+    DateTime parsedDate;
+    try {
+      if (map['date'] is Timestamp) {
+        parsedDate = (map['date'] as Timestamp).toDate();
+      } else if (map['date'] is String) {
+        parsedDate = DateTime.parse(map['date']);
+      } else {
+        parsedDate = DateTime.now();
+      }
+    } catch (e) {
+      parsedDate = DateTime.now();
+    }
+
     return AttendanceRecord(
       id: id,
       studentId: map['studentId'] ?? '',
       studentName: map['studentName'] ?? '',
-      date: (map['date'] as Timestamp).toDate(),
+      date: parsedDate,
       status: map['status'] ?? 'present',
       markedBy: map['markedBy'] ?? '',
       classId: map['classId'] ?? '',

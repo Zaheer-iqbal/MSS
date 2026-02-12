@@ -109,29 +109,26 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
                   const SizedBox(height: 40),
                   _buildStatsGrid(),
                   const SizedBox(height: 48),
-                  SizedBox(
+                  // Removed "Manage Attendance" button as per requirement to not allow updates
+                  Container(
                     width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton.icon(
-                      onPressed: () async {
-                         await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => AttendanceScreen(
-                              classId: widget.classId,
-                              section: widget.section,
-                            ),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle, color: Colors.green),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text(
+                            "Attendance for today has been submitted.",
+                            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
                           ),
-                        );
-                        _fetchAttendance(); // Refresh on return
-                      },
-                      icon: const Icon(Icons.edit),
-                      label: const Text('MANAGE ATTENDANCE', style: TextStyle(fontWeight: FontWeight.bold)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.teacherRole,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
+                        ),
+                      ],
                     ),
                   ),
                 ],

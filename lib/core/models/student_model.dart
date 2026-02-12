@@ -15,6 +15,7 @@ class StudentModel {
   final String phone;
   final String address;
   final String imageUrl;
+  final String remarks;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -35,6 +36,7 @@ class StudentModel {
     this.phone = '',
     this.address = '',
     this.imageUrl = '',
+    this.remarks = '',
     required this.createdAt,
     required this.updatedAt,
   });
@@ -57,6 +59,7 @@ class StudentModel {
       'phone': phone,
       'address': address,
       'imageUrl': imageUrl,
+      'remarks': remarks,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -80,8 +83,51 @@ class StudentModel {
       phone: map['phone'] ?? '',
       address: map['address'] ?? '',
       imageUrl: map['imageUrl'] ?? '',
+      remarks: map['remarks'] ?? '',
       createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
       updatedAt: DateTime.parse(map['updatedAt'] ?? map['createdAt'] ?? DateTime.now().toIso8601String()),
+    );
+  }
+
+  StudentModel copyWith({
+    String? name,
+    String? rollNo,
+    String? classId,
+    String? section,
+    String? email,
+    String? parentEmail,
+    String? parentPassword,
+    Map<String, dynamic>? quizMarks,
+    Map<String, dynamic>? assignmentMarks,
+    Map<String, dynamic>? midTermMarks,
+    Map<String, dynamic>? finalTermMarks,
+    String? fatherName,
+    String? phone,
+    String? address,
+    String? imageUrl,
+    String? remarks,
+    DateTime? updatedAt,
+  }) {
+    return StudentModel(
+      id: id,
+      name: name ?? this.name,
+      rollNo: rollNo ?? this.rollNo,
+      classId: classId ?? this.classId,
+      section: section ?? this.section,
+      email: email ?? this.email,
+      parentEmail: parentEmail ?? this.parentEmail,
+      parentPassword: parentPassword ?? this.parentPassword,
+      quizMarks: quizMarks ?? this.quizMarks,
+      assignmentMarks: assignmentMarks ?? this.assignmentMarks,
+      midTermMarks: midTermMarks ?? this.midTermMarks,
+      finalTermMarks: finalTermMarks ?? this.finalTermMarks,
+      fatherName: fatherName ?? this.fatherName,
+      phone: phone ?? this.phone,
+      address: address ?? this.address,
+      imageUrl: imageUrl ?? this.imageUrl,
+      remarks: remarks ?? this.remarks,
+      createdAt: createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 }

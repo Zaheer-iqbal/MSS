@@ -58,13 +58,13 @@ class ClassSelectionScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AttendanceSummaryScreen(
+              builder: (context) => AttendanceScreen(
                 classId: classId,
                 section: section,
               ),
             ),
           );
-        } else if (assessmentType == 'View') {
+        } else if (assessmentType == 'Student List' || assessmentType == 'View') {
           Navigator.push(
             context,
             MaterialPageRoute(

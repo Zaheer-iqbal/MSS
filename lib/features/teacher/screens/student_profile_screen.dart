@@ -8,6 +8,7 @@ import '../../teacher/screens/attendance_summary_screen.dart';
 import '../../../core/services/attendance_service.dart';
 import '../../../core/models/attendance_model.dart';
 import 'manage_student_screen.dart';
+import 'update_result_screen.dart';
 import '../../chat/screens/chat_screen.dart';
 import '../../chat/services/chat_service.dart';
 
@@ -31,137 +32,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     _userRole = authService.currentUser?.role;
   }
 
-  Future<void> _updateMarks(StudentModel currentStudent, String type, Map<String, dynamic> newMarks) async {
-    final updatedStudent = StudentModel(
-      id: currentStudent.id,
-      name: currentStudent.name,
-      rollNo: currentStudent.rollNo,
-      classId: currentStudent.classId,
-      section: currentStudent.section,
-      parentEmail: currentStudent.parentEmail,
-      fatherName: currentStudent.fatherName,
-      phone: currentStudent.phone,
-      address: currentStudent.address,
-      imageUrl: currentStudent.imageUrl,
-      parentPassword: currentStudent.parentPassword,
-      quizMarks: type == 'Quizzes' ? newMarks : currentStudent.quizMarks,
-      assignmentMarks: type == 'Assignments' ? newMarks : currentStudent.assignmentMarks,
-      midTermMarks: type == 'Mid-term' ? newMarks : currentStudent.midTermMarks,
-      finalTermMarks: type == 'Final-term' ? newMarks : currentStudent.finalTermMarks,
-      createdAt: currentStudent.createdAt,
-      updatedAt: DateTime.now(),
-    );
+  // Removed unused _updateMarks helper as logic is moved to UpdateResultScreen
 
-    try {
-      await _studentApi.updateStudent(updatedStudent);
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Update failed: $e')));
-      }
-    }
-  }
-
-  void _showEditor(StudentModel currentStudent, String type, Map<String, dynamic> currentData) {
-    final Map<String, dynamic> tempMarks = Map.from(currentData);
-    final keyController = TextEditingController();
-    final valController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => Container(
-          height: MediaQuery.of(context).size.height * 0.85,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Manage $type', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                  IconButton(icon: const Icon(Icons.close), onPressed: () => Navigator.pop(context)),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Row(
-                children: [
-                  Expanded(child: TextField(controller: keyController, decoration: InputDecoration(hintText: type == 'Assignments' ? 'Assignment Name' : 'Subject/Topic'))),
-                  const SizedBox(width: 12),
-                  Expanded(child: TextField(controller: valController, decoration: const InputDecoration(hintText: 'Marks/Grade'))),
-                  const SizedBox(width: 12),
-                  IconButton.filled(
-                    onPressed: () {
-                      if (keyController.text.isNotEmpty && valController.text.isNotEmpty) {
-                        setModalState(() => tempMarks[keyController.text] = valController.text);
-                        keyController.clear();
-                        valController.clear();
-                      }
-                    },
-                    icon: const Icon(Icons.add),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: ListView.separated(
-                  itemCount: tempMarks.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (context, index) {
-                    final key = tempMarks.keys.elementAt(index);
-                    return ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(key, style: const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(tempMarks[key].toString(), style: const TextStyle(color: AppColors.textSecondary)),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.edit, color: Colors.blue, size: 20),
-                            onPressed: () {
-                              keyController.text = key;
-                              valController.text = tempMarks[key].toString();
-                              setModalState(() => tempMarks.remove(key));
-                            },
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete, color: Colors.red, size: 20),
-                            onPressed: () => setModalState(() => tempMarks.remove(key)),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: () {
-                    _updateMarks(currentStudent, type, tempMarks);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  child: const Text('Save All Updates', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                ),
-              ),
-              SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // Removed _showEditor in favor of UpdateResultScreen
 
   @override
   Widget build(BuildContext context) {
@@ -177,21 +50,22 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               _buildSliverAppBar(student),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(24.0),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildProfileHeader(student),
-                      const SizedBox(height: 24),
-                      _buildProfileHeader(student),
-                      const SizedBox(height: 24),
-                      _buildAttendanceSection(student),
-                      const SizedBox(height: 24),
-                      _buildDetailedInfo(student),
                       const SizedBox(height: 32),
-                      const Text('Academic Management', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      _buildAttendanceSection(student),
+                      const SizedBox(height: 32),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: const Text('Academic Management', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                      ),
                       const SizedBox(height: 8),
-                      const Text('Select a card below to manage academic records.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                      const Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text('Select a card below to manage academic records.', style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                      ),
                       const SizedBox(height: 24),
                       GridView.count(
                         shrinkWrap: true,
@@ -199,6 +73,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                         crossAxisCount: 2,
                         crossAxisSpacing: 16,
                         mainAxisSpacing: 16,
+                        childAspectRatio: 1.1,
                         children: [
                           _buildManagementCard(student, 'Quizzes', Icons.quiz, Colors.blue, student.quizMarks),
                           _buildManagementCard(student, 'Assignments', Icons.assignment, Colors.green, student.assignmentMarks),
@@ -215,20 +90,6 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               ),
             ],
           ),
-          floatingActionButton: (_userRole == 'teacher' || _userRole == 'school' || _userRole == 'head_teacher') 
-            ? FloatingActionButton.extended(
-                onPressed: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ManageStudentScreen(student: student)),
-                  );
-                },
-                label: const Text('Edit Basic Info'),
-                icon: const Icon(Icons.edit),
-                backgroundColor: Colors.white,
-                foregroundColor: AppColors.primary,
-              )
-            : null,
         );
       }
     );
@@ -317,122 +178,257 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
   Widget _buildSliverAppBar(StudentModel student) {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 0,
+      floating: true,
       pinned: true,
-      backgroundColor: AppColors.primary,
-      iconTheme: const IconThemeData(color: Colors.white),
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(student.name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18)),
-        centerTitle: false,
-        titlePadding: const EdgeInsets.only(left: 60, bottom: 16),
-      ),
+      elevation: 0,
+      backgroundColor: AppColors.background,
+      foregroundColor: AppColors.textPrimary,
+      title: Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+      centerTitle: true,
     );
   }
 
   Widget _buildProfileHeader(StudentModel student) {
-    return Container(
-      padding: const EdgeInsets.all(24),
+    return InkWell(
+      onTap: () => _showStudentDetails(student),
+      borderRadius: BorderRadius.circular(28),
+      child: Container(
+        padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 40,
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            backgroundImage: student.imageUrl.isNotEmpty ? NetworkImage(student.imageUrl) : null,
-            child: student.imageUrl.isEmpty 
-              ? Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary))
-              : null,
+          Stack(
+            alignment: Alignment.bottomRight,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 2),
+                ),
+                child: CircleAvatar(
+                  radius: 45,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  backgroundImage: student.imageUrl.isNotEmpty ? NetworkImage(student.imageUrl) : null,
+                  child: student.imageUrl.isEmpty 
+                    ? Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary))
+                    : null,
+                ),
+              ),
+              if (student.phone.isNotEmpty)
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                  child: const Icon(Icons.phone, size: 14, color: Colors.white),
+                ),
+            ],
           ),
           const SizedBox(width: 20),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(student.name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                Text('Roll No: ${student.rollNo}', style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        student.name, 
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_userRole == 'teacher' || _userRole == 'head_teacher' || _userRole == 'school')
+                      Row(
+                        children: [
+                          _buildSmallChatAction(
+                            icon: Icons.message_outlined, 
+                            color: AppColors.primary, 
+                            onTap: () => _messageUser(context, student.email, student.name, 'Student'),
+                          ),
+                          const SizedBox(width: 8),
+                          _buildSmallChatAction(
+                            icon: Icons.family_restroom_outlined, 
+                            color: Colors.orange, 
+                            onTap: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent'),
+                          ),
+                        ],
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 4),
+                Text(
+                  'ID: #${student.rollNo}', 
+                  style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
+                    color: AppColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Text('Class ${student.classId}-${student.section}', 
-                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 12)),
-                ),
-                if (_userRole == 'teacher' || _userRole == 'head_teacher') ...[
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (student.email.isNotEmpty)
-                        IconButton.filled(
-                          onPressed: () => _messageUser(context, student.email, student.name, 'Student'),
-                          icon: const Icon(Icons.message, size: 18),
-                          tooltip: 'Message Student',
-                          style: IconButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
-                        ),
-                      if (student.email.isNotEmpty) const SizedBox(width: 8),
-                      if (student.parentEmail.isNotEmpty)
-                        IconButton.filled(
-                          onPressed: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent'),
-                          icon: const Icon(Icons.family_restroom, size: 18),
-                          tooltip: 'Message Parent',
-                          style: IconButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-                        ),
-                    ],
+                  child: Text(
+                    'Class ${student.classId} - ${student.section}', 
+                    style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 12),
                   ),
-                ],
+                ),
               ],
             ),
           ),
         ],
+      ),
+    ),
+  );
+}
+
+  void _showStudentDetails(StudentModel student) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        height: MediaQuery.of(context).size.height * 0.75,
+        decoration: const BoxDecoration(
+          color: AppColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Complete Profile Details',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 24),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  children: [
+                    _buildDetailedInfo(student),
+                    const SizedBox(height: 32),
+                    if (_userRole == 'teacher' || _userRole == 'school' || _userRole == 'head_teacher')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            Navigator.pop(context); // Close sheet
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => ManageStudentScreen(student: student)),
+                            );
+                          },
+                          icon: const Icon(Icons.edit, size: 20),
+                          label: const Text('Edit Student Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSmallChatAction({required IconData icon, required Color color, required VoidCallback onTap}) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(icon, color: color, size: 18),
       ),
     );
   }
 
   Widget _buildDetailedInfo(StudentModel student) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)],
+        border: Border.all(color: Colors.black.withValues(alpha: 0.05)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Detailed Information', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          const Text('Profile Details', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           const SizedBox(height: 20),
-          _buildInfoRow(Icons.person_outline, 'Father Name', student.fatherName),
-          const Divider(height: 32),
-          _buildInfoRow(Icons.phone_android, 'Phone', student.phone),
-          const Divider(height: 32),
-          _buildInfoRow(Icons.email_outlined, 'Parent Email', student.parentEmail),
-          const Divider(height: 32),
+          _buildInfoRow(Icons.email_outlined, 'Student Email', student.email),
+          _divider(),
+          _buildInfoRow(Icons.person_pin_outlined, 'Father\'s Name', student.fatherName),
+          _divider(),
+          _buildInfoRow(Icons.phone_outlined, 'Parent Phone', student.phone),
+          _divider(),
+          _buildInfoRow(Icons.alternate_email, 'Parent Email', student.parentEmail),
+          _divider(),
+          _buildInfoRow(Icons.lock_outline, 'Parent Password', student.parentPassword),
+          _divider(),
           _buildInfoRow(Icons.location_on_outlined, 'Address', student.address),
         ],
       ),
     );
   }
 
+  Widget _divider() => Divider(height: 32, color: Colors.black.withValues(alpha: 0.05));
+
   Widget _buildInfoRow(IconData icon, String label, String value) {
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(10)),
+          decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(10)),
           child: Icon(icon, size: 20, color: AppColors.primary),
         ),
         const SizedBox(width: 16),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            Text(value.isNotEmpty ? value : 'Not provided', style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            const SizedBox(height: 2),
+            Text(value.isNotEmpty ? value : 'Not provided', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
           ],
         ),
       ],
@@ -445,6 +441,32 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       children: [
         const Text('Academic Performance', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
         const SizedBox(height: 16),
+        if (student.remarks.isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.comment_outlined, size: 16, color: AppColors.primary),
+                    const SizedBox(width: 8),
+                    const Text('Teacher Remarks', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 13)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(student.remarks, style: const TextStyle(fontSize: 14, fontStyle: FontStyle.italic, color: AppColors.textPrimary)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
         _buildSummaryCard('Quizzes', student.quizMarks, Colors.blue),
         const SizedBox(height: 16),
         _buildSummaryCard('Assignments', student.assignmentMarks, Colors.green),
@@ -464,7 +486,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 10)],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
         border: Border(left: BorderSide(color: color, width: 4)),
       ),
       child: Column(
@@ -497,23 +519,42 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     bool canEdit = _userRole == 'teacher' || _userRole == 'school' || _userRole == 'head_teacher';
     
     return InkWell(
-      onTap: canEdit ? () => _showEditor(student, title, data) : null,
+      onTap: canEdit ? () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => UpdateResultScreen(
+            student: student,
+            initialCategory: title,
+          ),
+        ),
+      ) : null,
+      borderRadius: BorderRadius.circular(24),
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
-          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+          border: Border.all(color: color.withValues(alpha: 0.1)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: color, size: 40),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 28),
+            ),
             const SizedBox(height: 12),
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
-            const SizedBox(height: 4),
-            Text('${data.length} Records', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+            Text(title, 
+                 textAlign: TextAlign.center,
+                 maxLines: 1,
+                 overflow: TextOverflow.ellipsis,
+                 style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+            const SizedBox(height: 2),
+            Text('${data.length} Records', style: TextStyle(fontSize: 11, color: color, fontWeight: FontWeight.w500)),
           ],
         ),
       ),

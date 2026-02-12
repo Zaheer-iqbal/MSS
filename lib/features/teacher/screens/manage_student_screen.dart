@@ -1,4 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
 import '../../student/services/student_api.dart';
@@ -18,18 +21,20 @@ class ManageStudentScreen extends StatefulWidget {
 class _ManageStudentScreenState extends State<ManageStudentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _studentApi = StudentApi();
+  final _picker = ImagePicker();
   
   late TextEditingController _nameController;
   late TextEditingController _rollNoController;
   late TextEditingController _classController;
   late TextEditingController _sectionController;
-  late TextEditingController _emailController; // Student Email
   late TextEditingController _parentEmailController;
   late TextEditingController _parentPasswordController;
   late TextEditingController _fatherNameController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
 
+  File? _selectedImage;
+  String? _currentImageUrl;
   bool _isLoading = false;
 
   @override
@@ -39,19 +44,12 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     _rollNoController = TextEditingController(text: widget.student?.rollNo);
     _classController = TextEditingController(text: widget.student?.classId);
     _sectionController = TextEditingController(text: widget.student?.section);
-    _emailController = TextEditingController(text: widget.student?.email);
     _parentEmailController = TextEditingController(text: widget.student?.parentEmail);
     _parentPasswordController = TextEditingController(text: widget.student?.parentPassword);
     _fatherNameController = TextEditingController(text: widget.student?.fatherName);
     _phoneController = TextEditingController(text: widget.student?.phone);
     _addressController = TextEditingController(text: widget.student?.address);
-
-    // Auto-sync password with email
-    _parentEmailController.addListener(() {
-      if (widget.student == null) {
-         _parentPasswordController.text = _parentEmailController.text;
-      }
-    });
+    _currentImageUrl = widget.student?.imageUrl;
   }
 
   @override
@@ -60,7 +58,6 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     _rollNoController.dispose();
     _classController.dispose();
     _sectionController.dispose();
-    _emailController.dispose();
     _parentEmailController.dispose();
     _parentPasswordController.dispose();
     _fatherNameController.dispose();
@@ -69,39 +66,59 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await _picker.pickImage(source: source, imageQuality: 70);
+    if (pickedFile != null) {
+      setState(() => _selectedImage = File(pickedFile.path));
+    }
+  }
+
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
       
-      final student = StudentModel(
-        id: widget.student?.id ?? '',
-        name: _nameController.text.trim(),
-        rollNo: _rollNoController.text.trim(),
-        classId: _classController.text.trim(),
-        section: _sectionController.text.trim(),
-        email: _emailController.text.trim(),
-        parentEmail: _parentEmailController.text.trim(),
-        parentPassword: _parentPasswordController.text.trim(),
-        fatherName: _fatherNameController.text.trim(),
-        phone: _phoneController.text.trim(),
-        address: _addressController.text.trim(),
-        imageUrl: widget.student?.imageUrl ?? '',
-        quizMarks: widget.student?.quizMarks ?? {},
-        assignmentMarks: widget.student?.assignmentMarks ?? {},
-        midTermMarks: widget.student?.midTermMarks ?? {},
-        finalTermMarks: widget.student?.finalTermMarks ?? {},
-        createdAt: widget.student?.createdAt ?? DateTime.now(),
-        updatedAt: DateTime.now(),
-      );
-
       try {
+        String finalImageUrl = _currentImageUrl ?? '';
+
+        // 1. Upload new image if selected
+        if (_selectedImage != null) {
+          final ref = FirebaseStorage.instance
+              .ref()
+              .child('student_profiles')
+              .child('${_rollNoController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+          
+          await ref.putFile(_selectedImage!);
+          finalImageUrl = await ref.getDownloadURL();
+        }
+
+        final student = StudentModel(
+          id: widget.student?.id ?? '',
+          name: _nameController.text.trim(),
+          rollNo: _rollNoController.text.trim(),
+          classId: _classController.text.trim(),
+          section: _sectionController.text.trim(),
+          email: widget.student?.email ?? '',
+          parentEmail: _parentEmailController.text.trim(),
+          parentPassword: _parentPasswordController.text.trim(),
+          fatherName: _fatherNameController.text.trim(),
+          phone: _phoneController.text.trim(),
+          address: _addressController.text.trim(),
+          imageUrl: finalImageUrl,
+          quizMarks: widget.student?.quizMarks ?? {},
+          assignmentMarks: widget.student?.assignmentMarks ?? {},
+          midTermMarks: widget.student?.midTermMarks ?? {},
+          finalTermMarks: widget.student?.finalTermMarks ?? {},
+          remarks: widget.student?.remarks ?? '',
+          createdAt: widget.student?.createdAt ?? DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+
         if (widget.student == null) {
           await _studentApi.addStudent(student);
         } else {
           await _studentApi.updateStudent(student);
         }
 
-        // --- NEW LOGIC: Update Teacher's Class List ---
         if (mounted) {
            final authService = Provider.of<AuthService>(context, listen: false);
            final user = authService.currentUser;
@@ -110,20 +127,14 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
              final newClassId = _classController.text.trim();
              final newSection = _sectionController.text.trim();
              
-             // Check if class exists
              final exists = user.assignedClasses.any((c) => 
                c['classId'] == newClassId && c['section'] == newSection
              );
 
              if (!exists) {
-               // Create updated class list
                final updatedClasses = List<Map<String, String>>.from(user.assignedClasses);
-               updatedClasses.add({
-                 'classId': newClassId,
-                 'section': newSection
-               });
+               updatedClasses.add({'classId': newClassId, 'section': newSection});
 
-               // Create updated user
                final updatedUser = UserModel(
                  uid: user.uid,
                  email: user.email,
@@ -137,21 +148,19 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
                  address: user.address,
                );
                
-               // Save to Firestore
                await TeacherApi().updateTeacherProfile(updatedUser);
-               
-               // Refresh local auth state to update Dashboard
                await authService.refreshUser();
              }
            }
         }
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Student enrolled successfully!'), backgroundColor: Colors.green),
+            const SnackBar(content: Text('Details saved successfully!'), backgroundColor: Colors.green),
           );
           Navigator.pop(context);
         }
-      } catch (e, stackTrace) {
+      } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
@@ -183,19 +192,19 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              _buildImagePicker(),
+              const SizedBox(height: 32),
               const Text(
                 'Enrollment Details',
                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 8),
               const Text(
-                'Enter the basic information to enroll the student in the system.',
+                'Update the basic information for this student.',
                 style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
               ),
               const SizedBox(height: 32),
               _buildTextField(_nameController, 'Full Name', Icons.person),
-              const SizedBox(height: 16),
-              _buildTextField(_emailController, 'Student Email (Optional)', Icons.email_outlined, keyboardType: TextInputType.emailAddress),
               const SizedBox(height: 16),
               _buildTextField(_fatherNameController, 'Father Name', Icons.person_outline),
               const SizedBox(height: 16),
@@ -245,15 +254,69 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     );
   }
 
+  Widget _buildImagePicker() {
+    return Center(
+      child: Stack(
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.primary, width: 2),
+            ),
+            child: ClipOval(
+              child: _selectedImage != null
+                  ? Image.file(_selectedImage!, fit: BoxFit.cover)
+                  : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
+                      ? Image.network(_currentImageUrl!, fit: BoxFit.cover)
+                      : Container(
+                          color: AppColors.primary.withOpacity(0.1),
+                          child: const Icon(Icons.person, size: 60, color: AppColors.primary),
+                        ),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: GestureDetector(
+              onTap: () => _showImageSourceOptions(),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showImageSourceOptions() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Camera'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
+          ListTile(leading: const Icon(Icons.photo_library), title: const Text('Gallery'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildClassDropdown() {
     final classes = ['1st', '2nd', '3rd', '4th', '5th'];
-    // Ensure current value is in list
     if (_classController.text.isNotEmpty && !classes.contains(_classController.text)) {
       classes.add(_classController.text);
     }
     
     return DropdownButtonFormField<String>(
-      value: _classController.text.isEmpty ? null : _classController.text,
+      initialValue: _classController.text.isEmpty ? null : _classController.text,
       decoration: InputDecoration(
         labelText: 'Class',
         prefixIcon: const Icon(Icons.class_, color: AppColors.primary),
