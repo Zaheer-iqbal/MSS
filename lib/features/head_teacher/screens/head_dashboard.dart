@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../widgets/dashboard_widgets.dart';
 import '../../school/services/school_api.dart';
 import 'staff_list_screen.dart';
+import 'head_teacher_profile_screen.dart';
 
 class HeadDashboard extends StatelessWidget {
   const HeadDashboard({super.key});
@@ -24,7 +25,18 @@ class HeadDashboard extends StatelessWidget {
               name: user?.name ?? 'Head Teacher',
               role: 'Head Teacher',
               roleColor: AppColors.headTeacherRole,
+              imageUrl: user?.imageUrl, 
               onLogout: () => authService.signOut(),
+              onAvatarTap: () {
+                if (user != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => HeadTeacherProfileScreen(user: user),
+                    ),
+                  );
+                }
+              },
             ),
             Padding(
               padding: const EdgeInsets.all(24.0),

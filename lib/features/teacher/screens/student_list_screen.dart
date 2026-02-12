@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
+import '../../../core/services/auth_service.dart';
 import '../../student/services/student_api.dart';
 import 'manage_student_screen.dart';
 import 'student_profile_screen.dart';
@@ -48,32 +51,64 @@ class _StudentListScreenState extends State<StudentListScreen> {
             ),
           ),
           Expanded(
-            child: StreamBuilder<List<StudentModel>>(
-              stream: _searchQuery.isEmpty 
-                ? (widget.classId != null 
-                    ? _studentApi.getStudentsByClass(widget.classId!, widget.section!)
-                    : _studentApi.getAllStudents()) // Changed to getAllStudents or similar if available, or just empty list with message
-                : _studentApi.searchStudents(_searchQuery),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                }
-                final students = snapshot.data ?? [];
-                
-                if (students.isEmpty) {
-                  return const Center(child: Text('No students found.'));
-                }
+            child: Consumer<AuthService>(
+              builder: (context, auth, _) {
+                final user = auth.currentUser;
+                final bool isTeacher = user?.role == 'teacher' || user?.role == 'head_teacher';
+                final List<Map<String, String>> assigned = user?.assignedClasses ?? [];
 
-                return ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: students.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final student = students[index];
-                    return _buildStudentCard(student);
+                return StreamBuilder<List<StudentModel>>(
+                  stream: _searchQuery.isEmpty 
+                    ? (widget.classId != null 
+                        ? _studentApi.getStudentsByClass(widget.classId!, widget.section!)
+                        : (isTeacher 
+                            ? _studentApi.getStudentsByMultipleClasses(assigned)
+                            : _studentApi.getAllStudents()))
+                    : _studentApi.searchStudents(_searchQuery),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Center(child: Text('Error: ${snapshot.error}'));
+                    }
+                    
+                    var students = snapshot.data ?? [];
+
+                    // Filter search results if teacher
+                    if (_searchQuery.isNotEmpty && isTeacher) {
+                      students = students.where((s) => 
+                        assigned.any((c) => c['classId'] == s.classId && c['section'] == s.section)
+                      ).toList();
+                    }
+                    
+                    if (students.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.group_off_outlined, size: 60, color: Colors.grey),
+                            const SizedBox(height: 16),
+                            Text(
+                              isTeacher && assigned.isEmpty 
+                                ? 'No classes assigned to you.' 
+                                : 'No students found.',
+                              style: const TextStyle(color: AppColors.textSecondary),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    return ListView.separated(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: students.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final student = students[index];
+                        return _buildStudentCard(student);
+                      },
+                    );
                   },
                 );
               },
@@ -106,7 +141,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
             CircleAvatar(
               radius: 28,
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-              child: Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 20)),
+              backgroundImage: student.imageUrl.isNotEmpty
+                  ? (student.imageUrl.startsWith('http')
+                      ? NetworkImage(student.imageUrl)
+                      : MemoryImage(base64Decode(student.imageUrl))) as ImageProvider
+                  : null,
+              child: student.imageUrl.isEmpty 
+                  ? Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 20))
+                  : null,
             ),
             const SizedBox(width: 16),
             Expanded(

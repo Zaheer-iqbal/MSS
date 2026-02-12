@@ -34,6 +34,21 @@ class StudentApi {
             .toList());
   }
 
+  // Get students for multiple classes/sections (for teachers)
+  Stream<List<StudentModel>> getStudentsByMultipleClasses(List<Map<String, String>> assigned) {
+    if (assigned.isEmpty) return Stream.value([]);
+    
+    return _firestore.collection('students').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+          .where((student) => assigned.any((c) => 
+            c['classId'] == student.classId && 
+            c['section'].toString().toLowerCase() == student.section.toLowerCase()
+          ))
+          .toList();
+    });
+  }
+
   // Get a single student by ID as a stream
   Stream<StudentModel?> streamStudentById(String id) {
     return _firestore.collection('students').doc(id).snapshots().map((doc) {

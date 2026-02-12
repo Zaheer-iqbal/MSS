@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -5,10 +6,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
 import '../../student/services/student_api.dart';
-import 'package:provider/provider.dart';
-import '../../../core/services/auth_service.dart';
-import '../../../core/models/user_model.dart';
-import '../../teacher/services/teacher_api.dart';
 
 class ManageStudentScreen extends StatefulWidget {
   final StudentModel? student;
@@ -82,13 +79,19 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
 
         // 1. Upload new image if selected
         if (_selectedImage != null) {
+          final fileName = '${_rollNoController.text.replaceAll(RegExp(r'[^\w]+'), '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final ref = FirebaseStorage.instance
               .ref()
               .child('student_profiles')
-              .child('${_rollNoController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
+              .child(fileName);
           
-          await ref.putFile(_selectedImage!);
-          finalImageUrl = await ref.getDownloadURL();
+          final uploadTask = ref.putFile(
+            _selectedImage!,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+
+          final TaskSnapshot snapshot = await uploadTask;
+          finalImageUrl = await snapshot.ref.getDownloadURL();
         }
 
         final student = StudentModel(
@@ -117,41 +120,6 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
           await _studentApi.addStudent(student);
         } else {
           await _studentApi.updateStudent(student);
-        }
-
-        if (mounted) {
-           final authService = Provider.of<AuthService>(context, listen: false);
-           final user = authService.currentUser;
-           
-           if (user != null) {
-             final newClassId = _classController.text.trim();
-             final newSection = _sectionController.text.trim();
-             
-             final exists = user.assignedClasses.any((c) => 
-               c['classId'] == newClassId && c['section'] == newSection
-             );
-
-             if (!exists) {
-               final updatedClasses = List<Map<String, String>>.from(user.assignedClasses);
-               updatedClasses.add({'classId': newClassId, 'section': newSection});
-
-               final updatedUser = UserModel(
-                 uid: user.uid,
-                 email: user.email,
-                 name: user.name,
-                 role: user.role,
-                 createdAt: user.createdAt,
-                 imageUrl: user.imageUrl,
-                 assignedClasses: updatedClasses,
-                 schedule: user.schedule,
-                 phone: user.phone,
-                 address: user.address,
-               );
-               
-               await TeacherApi().updateTeacherProfile(updatedUser);
-               await authService.refreshUser();
-             }
-           }
         }
 
         if (mounted) {
@@ -269,7 +237,9 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               child: _selectedImage != null
                   ? Image.file(_selectedImage!, fit: BoxFit.cover)
                   : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
-                      ? Image.network(_currentImageUrl!, fit: BoxFit.cover)
+                      ? (_currentImageUrl!.startsWith('http') 
+                          ? Image.network(_currentImageUrl!, fit: BoxFit.cover)
+                          : Image.memory(base64Decode(_currentImageUrl!), fit: BoxFit.cover))
                       : Container(
                           color: AppColors.primary.withOpacity(0.1),
                           child: const Icon(Icons.person, size: 60, color: AppColors.primary),

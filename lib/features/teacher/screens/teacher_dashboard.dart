@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'dart:math' as math;
+import 'package:collection/collection.dart';
+import 'package:mss/features/teacher/screens/enroll_student_screen.dart' show EnrollStudentScreen;
 import 'package:provider/provider.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/attendance_service.dart';
@@ -26,19 +30,52 @@ class TeacherDashboard extends StatefulWidget {
 
 class _TeacherDashboardState extends State<TeacherDashboard> {
   final AttendanceService _attendanceService = AttendanceService();
-  Map<String, int> _attendanceStats = {'present': 0, 'absent': 0, 'total': 0};
+  List<Map<String, dynamic>> _classStats = [];
+  List<Map<String, dynamic>> _todaySchedule = [];
+  Set<String> _dismissedSessionKeys = {}; // To track deleted/dismissed red sessions
+  final PageController _pageController = PageController();
+  final PageController _schedulePageController = PageController(viewportFraction: 0.93);
+  int _currentPage = 0;
+  int _currentSchedulePage = 0;
   bool _isLoading = true;
+  String? _lastFetchDate; // To reset dismissals daily
+  StreamSubscription<DocumentSnapshot>? _userSubscription;
 
   UserModel? _currentUser;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final user = Provider.of<AuthService>(context).currentUser;
-    if (user != _currentUser) {
-      _currentUser = user;
-      _fetchDashboardData();
+    final authUser = Provider.of<AuthService>(context).currentUser;
+    if (authUser != null && (_userSubscription == null || _currentUser?.uid != authUser.uid)) {
+      _currentUser = authUser;
+      _setupUserSubscription(authUser.uid);
     }
+  }
+
+  void _setupUserSubscription(String uid) {
+    _userSubscription?.cancel();
+    _userSubscription = FirebaseFirestore.instance
+        .collection('users')
+        .doc(uid)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.exists && mounted) {
+        final updatedUser = UserModel.fromMap(snapshot.data() as Map<String, dynamic>);
+        setState(() {
+          _currentUser = updatedUser;
+        });
+        _fetchDashboardData();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _userSubscription?.cancel();
+    _pageController.dispose();
+    _schedulePageController.dispose();
+    super.dispose();
   }
 
   Future<void> _fetchDashboardData() async {
@@ -46,63 +83,139 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     setState(() => _isLoading = true);
 
     final user = _currentUser;
-    
-    if (user != null && user.assignedClasses != null && user.assignedClasses!.isNotEmpty) {
-      try {
-        // In a real app, might aggregate or select specifically
-        final classInfo = user.assignedClasses.isNotEmpty ? user.assignedClasses.first : null;
-        
-        if (classInfo != null && classInfo is Map) {
-          // The model defines assignedClasses as List<Map<String, dynamic>> or List<Map<String, String>>
-          // fromMap casts it to List<Map<String, String>>
-          final classId = classInfo['classId'] ?? '';
-          final section = classInfo['section'] ?? '';
-          
-          if (classId.isNotEmpty && section.isNotEmpty) {
-             String compositeId = "${classId}_$section".toLowerCase();
-             print("Fetching dashboard data for: $compositeId"); // Debug log
-
-             final records = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
-             
-             int present = 0;
-             int absent = 0;
-             for (var r in records) {
-               if (r.status == 'present') present++;
-               else if (r.status == 'absent') absent++;
-             }
-             
-             if (mounted) {
-               setState(() {
-                 _attendanceStats = {
-                   'present': present,
-                   'absent': absent,
-                   'total': records.length
-                 };
-                 _isLoading = false;
-               });
-             }
-          } else {
-             print("ClassId or Section is empty");
-             if (mounted) setState(() => _isLoading = false);
-          }
-        } else {
-           print("ClassInfo is null or invalid");
-           if (mounted) setState(() => _isLoading = false);
-        }
-      } catch (e) {
-        print("Error fetching dashboard attendance: $e");
-        if (mounted) setState(() => _isLoading = false);
-      }
-    } else {
-      print("User is null or has no assigned classes");
+    if (user == null) {
       if (mounted) setState(() => _isLoading = false);
+      return;
+    }
+
+    try {
+      // 1. Fetch Class Stats (Already implemented)
+      List<Map<String, dynamic>> tempStats = [];
+      for (var classInfo in user.assignedClasses) {
+        final classId = classInfo['classId'] ?? '';
+        final section = classInfo['section'] ?? '';
+        if (classId.isNotEmpty && section.isNotEmpty) {
+          String compositeId = "${classId}_$section".toLowerCase();
+          final records = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
+          int present = 0;
+          int absent = 0;
+          for (var r in records) {
+            if (r.status == 'present') present++;
+            else if (r.status == 'absent') absent++;
+          }
+          final students = await FirebaseFirestore.instance
+              .collection('students')
+              .where('classId', isEqualTo: classId)
+              .where('section', isEqualTo: section)
+              .get();
+          tempStats.add({
+            'classId': classId,
+            'section': section,
+            'present': present,
+            'absent': absent,
+            'total': records.length,
+            'totalStudents': students.docs.length,
+          });
+        }
+      }
+
+      final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final now = DateTime.now();
+      final currentDay = days[now.weekday - 1];
+      final dateStr = "${now.year}-${now.month}-${now.day}";
+
+      // Reset dismissals if it's a new day
+      if (_lastFetchDate != dateStr) {
+        _dismissedSessionKeys.clear();
+        _lastFetchDate = dateStr;
+      }
+      
+      final rawSchedule = user.schedule.where((e) => e['day']?.toLowerCase() == currentDay.toLowerCase()).toList();
+      
+      // Sort schedule by time
+      rawSchedule.sort((a, b) {
+        final timeA = _parseTime(a['time'] ?? '');
+        final timeB = _parseTime(b['time'] ?? '');
+        return timeA.compareTo(timeB);
+      });
+
+      List<Map<String, dynamic>> enrichedSchedule = [];
+      for (var session in rawSchedule) {
+        final classId = session['classId'] ?? '';
+        final section = session['section'] ?? '';
+        String compositeId = "${classId}_$section".toLowerCase();
+        
+        final records = await _attendanceService.getClassAttendance(compositeId, now);
+        
+        enrichedSchedule.add({
+          ...session,
+          'isMarked': records.isNotEmpty,
+          'hasPassed': _isTimePassed(session['time'] ?? ''),
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _classStats = tempStats;
+          _todaySchedule = enrichedSchedule;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print("Error fetching dashboard statistics: $e");
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  bool _isTimePassed(String timeStr) {
+    if (timeStr.isEmpty) return false;
+    try {
+      final dt = _parseTime(timeStr);
+      return DateTime.now().isAfter(dt);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  DateTime _parseTime(String timeStr) {
+    if (timeStr.isEmpty) return DateTime.now();
+    try {
+      // Handle time ranges like "09:00 AM - 10:00 AM" by taking the start time
+      String singleTimeStr = timeStr;
+      if (timeStr.contains('-')) {
+        singleTimeStr = timeStr.split('-')[0].trim();
+      }
+
+      // Clean and normalize input
+      final cleanTime = singleTimeStr.trim().toUpperCase();
+      
+      // Regex to match HH:MM AM/PM or HH AM/PM or HH:MM
+      // Groups: 1=Hour, 2=Minute (optional), 3=AM/PM (optional)
+      final regex = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*([AP]M)?$');
+      final match = regex.firstMatch(cleanTime);
+
+      if (match == null) return DateTime.now();
+
+      int hour = int.parse(match.group(1)!);
+      int minute = match.group(2) != null ? int.parse(match.group(2)!) : 0;
+      final amPm = match.group(3);
+
+      if (amPm != null) {
+        if (amPm == 'PM' && hour != 12) hour += 12;
+        if (amPm == 'AM' && hour == 12) hour = 0;
+      }
+
+      final now = DateTime.now();
+      return DateTime(now.year, now.month, now.day, hour, minute);
+    } catch (e) {
+      return DateTime.now();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
-    final user = authService.currentUser;
+    final user = _currentUser ?? authService.currentUser;
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final subTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
@@ -119,22 +232,26 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               children: [
                 _buildHeader(context, user, authService, textColor, subTextColor),
                 const SizedBox(height: 24),
-                _buildAttendanceSummaryCard(isDark),
-                const SizedBox(height: 24),
-                 Text(
-                  'Quick Actions',
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                if (user?.assignedClasses.isEmpty ?? true)
+                  _buildNoClassesDashboard(textColor, subTextColor, isDark)
+                else ...[
+                  _buildAttendanceSummaryCard(isDark),
+                  const SizedBox(height: 30),
+                  _buildDailyScheduleCard(user, textColor, subTextColor),
+                  const SizedBox(height: 30),
+                  Text(
+                    'Quick Actions',
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _buildQuickActionsGrid(context, isDark),
-                const SizedBox(height: 30),
-                _buildDailyScheduleCard(user),
-                const SizedBox(height: 30),
-                _buildPendingTasksSection(textColor, subTextColor, isDark),
+                  const SizedBox(height: 16),
+                  _buildQuickActionsGrid(context, isDark),
+                  const SizedBox(height: 30),
+                  _buildPendingTasksSection(textColor, subTextColor, isDark),
+                ],
                 const SizedBox(height: 80), 
               ],
             ),
@@ -197,13 +314,54 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildAttendanceSummaryCard(bool isDark) {
-    final total = _attendanceStats['total'] ?? 0;
-    final present = _attendanceStats['present'] ?? 0;
-    final absent = _attendanceStats['absent'] ?? 0;
-    // Calculate percentage, default to 0 if total is 0
+    if (_classStats.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: PageView.builder(
+            controller: _pageController,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemCount: _classStats.length,
+            itemBuilder: (context, index) {
+              final stats = _classStats[index];
+              return _buildAttendanceSlide(stats, isDark);
+            },
+          ),
+        ),
+        if (_classStats.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              _classStats.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentPage == index ? 20 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _currentPage == index ? AppColors.teacherRole : AppColors.teacherRole.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildAttendanceSlide(Map<String, dynamic> stats, bool isDark) {
+    final total = stats['total'] ?? 0;
+    final present = stats['present'] ?? 0;
+    final absent = stats['absent'] ?? 0;
     final percent = total > 0 ? ((present / total) * 100).toInt() : 0;
+    final classId = stats['classId'] ?? '';
+    final section = stats['section'] ?? '';
 
     return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 4),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E2130) : Colors.white,
@@ -219,7 +377,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       ),
       child: Row(
         children: [
-          // Circular indicator
           SizedBox(
             width: 80,
             height: 80,
@@ -266,9 +423,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  "Attendance",
+                  "Attendance: Class $classId-$section",
                   style: TextStyle(
                     fontSize: 16, 
                     fontWeight: FontWeight.bold,
@@ -276,17 +434,22 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  children: [
-                    _buildStatBadge("$present Present", Colors.blue),
-                    const SizedBox(width: 8),
-                    _buildStatBadge("$absent Absent", Colors.orange),
-                  ],
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildStatBadge("$present P", Colors.blue),
+                      const SizedBox(width: 4),
+                      _buildStatBadge("$absent A", Colors.orange),
+                      const SizedBox(width: 4),
+                      _buildStatBadge("${stats['totalStudents'] ?? 0} Students", AppColors.teacherRole),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   "Today, ${DateTime.now().day}/${DateTime.now().month}",
-                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey),
+                  style: TextStyle(color: isDark ? Colors.white54 : Colors.grey, fontSize: 12),
                 ),
               ],
             ),
@@ -310,104 +473,251 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  Widget _buildDailyScheduleCard(UserModel? user) {
+  Widget _buildDailyScheduleCard(UserModel? user, Color textColor, Color subTextColor) {
+    if (user == null) return const SizedBox.shrink();
+
+    // Filter out sessions that are already marked or dismissed
+    final visibleSessions = _todaySchedule.where((session) {
+      final isMarked = session['isMarked'] ?? false;
+      final key = "${session['classId']}_${session['section']}_${session['time']}";
+      final isDismissed = _dismissedSessionKeys.contains(key);
+      return !isMarked && !isDismissed;
+    }).toList();
+
+    if (visibleSessions.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [Colors.grey.shade400, Colors.grey.shade600],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: _buildEmptyScheduleView(),
+      );
+    }
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final cardHeight = math.max(225.0, screenHeight * 0.28); // Responsive height with minimum limit
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Daily Schedule',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            if (visibleSessions.length > 1)
+              Text(
+                '${_currentSchedulePage + 1}/${visibleSessions.length}',
+                style: TextStyle(color: subTextColor, fontSize: 12, fontWeight: FontWeight.bold),
+              ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: cardHeight, // Responsive height
+          child: PageView.builder(
+            controller: _schedulePageController,
+            physics: const BouncingScrollPhysics(),
+            onPageChanged: (index) => setState(() => _currentSchedulePage = index),
+            itemCount: visibleSessions.length,
+            itemBuilder: (context, index) {
+              final session = visibleSessions[index];
+              // The first session that hasn't passed is 'UP NEXT'
+              final upNextSession = visibleSessions.firstWhereOrNull((s) => !(s['hasPassed'] ?? false));
+              final isUpNext = session == upNextSession;
+              
+              return _buildScheduleSlide(session, isUpNext);
+            },
+          ),
+        ),
+        if (visibleSessions.length > 1) ...[
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(
+              visibleSessions.length,
+              (index) => Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: _currentSchedulePage == index ? 20 : 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: _currentSchedulePage == index ? AppColors.teacherRole : AppColors.teacherRole.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildEmptyScheduleView() {
+    return const Column(
+      children: [
+        Icon(Icons.calendar_today_outlined, color: Colors.white70, size: 40),
+        SizedBox(height: 16),
+        Text(
+          'No Class Scheduled',
+          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        Text(
+          'Enjoy your day!',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildScheduleSlide(Map<String, dynamic> session, bool isUpNext) {
+    final hasPassed = session['hasPassed'] ?? false;
+    final isRed = hasPassed; // Missed class turns red
+    final sessionKey = "${session['classId']}_${session['section']}_${session['time']}";
+
     return Container(
-      width: double.infinity,
+      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2E63F6), Color(0xFF1440C7)], // Blue gradient
+        gradient: LinearGradient(
+          colors: isRed 
+            ? [const Color(0xFFFF4B2B), const Color(0xFFFF416C)] // Red gradient
+            : [const Color(0xFF2E63F6), const Color(0xFF1440C7)], // Blue gradient
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Daily Schedule',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  // View Calendar
-                },
-                child: const Text(
-                  'View Calendar',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-               Container(
-                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                 decoration: BoxDecoration(
-                   color: Colors.white24,
-                   borderRadius: BorderRadius.circular(8),
-                 ),
-                 child: const Text('UP NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-               ),
-               const Spacer(),
-               const Icon(Icons.location_on, color: Colors.white70, size: 14),
-               const SizedBox(width: 4),
-               const Text('Room 402', style: TextStyle(color: Colors.white70, fontSize: 12)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Advanced Mathematics',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const Text(
-            'Grade 10B • Calculus & Geometry',
-            style: TextStyle(
-              color: Colors.white70,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Row(
-                children: [
-                   Icon(Icons.access_time, color: Colors.white70, size: 16),
-                   SizedBox(width: 6),
-                   Text('10:30 AM - 11:45 AM', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500)),
-                ],
-              ),
-              ElevatedButton(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: const Color(0xFF1440C7),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  minimumSize: const Size(0, 36),
-                ),
-                child: const Text('PREPARE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-              ),
-            ],
+        boxShadow: [
+          BoxShadow(
+            color: (isRed ? Colors.red : Colors.blue).withOpacity(0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
+      child: Stack(
+        children: [
+          _buildScheduleDetails(session, isUpNext),
+          if (isRed)
+            Positioned(
+              top: 0,
+              right: 0,
+              child: IconButton(
+                onPressed: () {
+                  setState(() {
+                    _dismissedSessionKeys.add(sessionKey);
+                  });
+                },
+                icon: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+                tooltip: 'Dismiss missed class',
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleDetails(Map<String, dynamic> session, bool isUpNext) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (isUpNext)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withOpacity(0.1)),
+                ),
+                child: const Row(
+                  children: [
+                    Text('⚡ ', style: TextStyle(fontSize: 10)),
+                    Text('UP NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              )
+            else
+              const SizedBox.shrink(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withOpacity(0.1)),
+              ),
+              child: Row(
+                children: [
+                  const Text('🕒 ', style: TextStyle(fontSize: 14)),
+                  Text(
+                    session['time'] ?? 'TBD',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          session['subject'] ?? 'No Subject',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 26,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.8,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Grade ${session['classId']}-${session['section']}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.white.withOpacity(0.9),
+            fontSize: 18,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const Spacer(),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                'Day: ${session['day'] ?? 'Today'} 📅',
+                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -659,6 +969,43 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       decoration: BoxDecoration(
         color: color.withOpacity(0.6),
         borderRadius: BorderRadius.circular(4),
+      ),
+    );
+  }
+
+  Widget _buildNoClassesDashboard(Color textColor, Color subTextColor, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(32),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E2130) : Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.school_outlined, size: 80, color: AppColors.teacherRole),
+          const SizedBox(height: 24),
+          Text(
+            'Ready to Start?',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'You haven\'t been assigned any classes yet. Once the Head Teacher assigns you classes, you\'ll see your students and schedule here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(color: subTextColor, fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          ElevatedButton(
+            onPressed: () => _fetchDashboardData(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.teacherRole,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: const Text('Refresh Dashboard', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

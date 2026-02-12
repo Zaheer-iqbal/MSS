@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../core/constants/app_colors.dart';
 
@@ -146,7 +147,11 @@ class DashboardHeader extends StatelessWidget {
             child: CircleAvatar(
               radius: 30,
               backgroundColor: Colors.white.withOpacity(0.2),
-              backgroundImage: imageUrl != null && imageUrl!.isNotEmpty ? NetworkImage(imageUrl!) : null,
+              backgroundImage: imageUrl != null && imageUrl!.isNotEmpty 
+                  ? (imageUrl!.startsWith('http') 
+                      ? NetworkImage(imageUrl!) 
+                      : MemoryImage(base64Decode(imageUrl!))) as ImageProvider
+                  : null,
               child: (imageUrl == null || imageUrl!.isEmpty) 
                   ? const Icon(Icons.person, color: Colors.white, size: 30)
                   : null,

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -221,7 +222,11 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                 child: CircleAvatar(
                   radius: 45,
                   backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                  backgroundImage: student.imageUrl.isNotEmpty ? NetworkImage(student.imageUrl) : null,
+                  backgroundImage: student.imageUrl.isNotEmpty 
+                    ? (student.imageUrl.startsWith('http') 
+                        ? NetworkImage(student.imageUrl) 
+                        : MemoryImage(base64Decode(student.imageUrl))) as ImageProvider
+                    : null,
                   child: student.imageUrl.isEmpty 
                     ? Text(student.name[0], style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.primary))
                     : null,

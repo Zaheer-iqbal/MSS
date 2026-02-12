@@ -30,10 +30,14 @@ class AuthService extends ChangeNotifier {
   AuthService() {
     _auth.authStateChanges().listen((User? user) {
       if (user != null) {
+        print("AuthService: User detected: ${user.uid}");
         _fetchUserData(user.uid);
       } else {
+        print("AuthService: User signed out");
         _currentUser = null;
-        _isInitializing = false;
+        // _isInitializing = false; // Don't set this to false here on logout, only initially? 
+        // Actually, on logout we are not initializing, we are just done.
+        _isInitializing = false; 
         notifyListeners();
       }
     });
@@ -86,19 +90,30 @@ class AuthService extends ChangeNotifier {
   // Login
   Future<String?> login({required String email, required String password}) async {
     try {
+      print("AuthService: Attempting login for $email");
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
       
+      print("AuthService: Firebase Auth successful. UID: ${result.user?.uid}");
+
       if (result.user != null) {
+        // Optimization: If listener already fetched data, return success
+        if (_currentUser != null && _currentUser!.uid == result.user!.uid) {
+           print("AuthService: User data already loaded. Skipping fetch.");
+           return null;
+        }
+
         // Fetch user data including role
         return await _fetchUserData(result.user!.uid);
       }
       return "Login failed";
     } on FirebaseAuthException catch (e) {
+      print("AuthService: Login Error: ${e.message}");
       return e.message;
     } catch (e) {
+      print("AuthService: Login Exception: $e");
       return e.toString();
     }
   }
@@ -162,6 +177,7 @@ class AuthService extends ChangeNotifier {
         return "User data not found";
       }
     } catch (e) {
+      print("AuthService: Error fetching user data: $e");
       _isInitializing = false;
       notifyListeners();
       return e.toString();

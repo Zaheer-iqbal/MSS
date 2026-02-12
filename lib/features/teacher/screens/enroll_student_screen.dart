@@ -1,8 +1,12 @@
+import 'dart:convert';
 import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import '../../../core/services/auth_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
 import '../../student/services/student_api.dart';
@@ -55,6 +59,20 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
 
     _nameController.addListener(updateCredentials);
     _rollNoController.addListener(updateCredentials);
+
+    // Initial check for assigned classes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      final user = authService.currentUser;
+      if (user != null && user.assignedClasses.isNotEmpty) {
+        if (user.assignedClasses.length == 1) {
+          setState(() {
+            _selectedClass = user.assignedClasses[0]['classId'];
+            _selectedSection = user.assignedClasses[0]['section'];
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -71,7 +89,8 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source, imageQuality: 70);
+    // Use low quality to keep Base64 string small for Firestore headers/limits
+    final pickedFile = await _picker.pickImage(source: source, imageQuality: 25);
     if (pickedFile != null) {
       setState(() => _selectedImage = File(pickedFile.path));
     }
@@ -102,17 +121,13 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
     setState(() => _isLoading = true);
     try {
       String imageUrl = '';
-      
-      // 1. Upload to Firebase Storage if image is selected
-      if (_selectedImage != null) {
-        final ref = FirebaseStorage.instance
-            .ref()
-            .child('student_profiles')
-            .child('${_rollNoController.text}_${DateTime.now().millisecondsSinceEpoch}.jpg');
-        
-        await ref.putFile(_selectedImage!);
-        imageUrl = await ref.getDownloadURL();
+      // 1. Convert to Base64 (No Firebase Storage)
+      if (_selectedImage == null) {
+        throw 'Please select a student photo';
       }
+
+      final bytes = await _selectedImage!.readAsBytes();
+      imageUrl = base64Encode(bytes);
 
       final student = StudentModel(
         id: '', 
@@ -193,7 +208,9 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
-              child: _buildCurrentStepView(),
+              child: (Provider.of<AuthService>(context).currentUser?.assignedClasses.isEmpty ?? true)
+                  ? _buildNoClassesView()
+                  : _buildCurrentStepView(),
             ),
           ),
           _buildBottomNavigation(),
@@ -202,7 +219,29 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
     );
   }
 
+  Widget _buildNoClassesView() {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const SizedBox(height: 100),
+        const Icon(Icons.lock_person_outlined, size: 80, color: Colors.grey),
+        const SizedBox(height: 24),
+        const Text(
+          'No Classes Assigned',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'You can only enroll students in classes assigned to you by the Head Teacher. Please contact your Head Teacher to get classes assigned.',
+          textAlign: TextAlign.center,
+          style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+        ),
+      ],
+    );
+  }
+
   Widget _buildProgressBar() {
+    if (Provider.of<AuthService>(context).currentUser?.assignedClasses.isEmpty ?? true) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
       child: Row(
@@ -330,6 +369,18 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
   }
 
   Widget _buildAcademicStep() {
+    final user = Provider.of<AuthService>(context, listen: false).currentUser;
+    final List<Map<String, String>> assigned = user?.assignedClasses ?? [];
+
+    // If teacher has assigned classes, limit the options
+    final List<String> classOptions = assigned.isNotEmpty 
+        ? assigned.map((e) => e['classId']!).toSet().toList()
+        : ['1st', '2nd', '3rd', '4th', '5th'];
+
+    final List<String> sectionOptions = assigned.isNotEmpty
+        ? assigned.where((e) => e['classId'] == _selectedClass).map((e) => e['section']!).toSet().toList()
+        : ['A', 'B', 'C'];
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -339,9 +390,36 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
         const SizedBox(height: 32),
         Row(
           children: [
-            Expanded(child: _buildDropdownField(label: 'GRADE / CLASS', value: _selectedClass, items: ['1st', '2nd', '3rd', '4th', '5th'], onChanged: (v) => setState(() => _selectedClass = v))),
+            Expanded(
+              child: _buildDropdownField(
+                label: 'GRADE / CLASS', 
+                value: _selectedClass, 
+                items: classOptions, 
+                onChanged: (v) {
+                  setState(() {
+                    _selectedClass = v;
+                    _selectedSection = null; // Reset section when class changes
+                    
+                    // If the newly selected class has only one section assigned, auto-select it
+                    if (assigned.isNotEmpty) {
+                      final availableSections = assigned.where((e) => e['classId'] == v).toList();
+                      if (availableSections.length == 1) {
+                        _selectedSection = availableSections[0]['section'];
+                      }
+                    }
+                  });
+                }
+              )
+            ),
             const SizedBox(width: 16),
-            Expanded(child: _buildDropdownField(label: 'SECTION', value: _selectedSection, items: ['A', 'B', 'C'], onChanged: (v) => setState(() => _selectedSection = v))),
+            Expanded(
+              child: _buildDropdownField(
+                label: 'SECTION', 
+                value: _selectedSection, 
+                items: sectionOptions, 
+                onChanged: (v) => setState(() => _selectedSection = v)
+              )
+            ),
           ],
         ),
         const SizedBox(height: 20),
@@ -486,6 +564,7 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
   }
 
   Widget _buildBottomNavigation() {
+    if (Provider.of<AuthService>(context).currentUser?.assignedClasses.isEmpty ?? true) return const SizedBox.shrink();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
