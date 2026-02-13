@@ -26,9 +26,11 @@ class _StudentListScreenState extends State<StudentListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.classId != null 
-          ? 'Students: ${widget.classId}-${widget.section}'
-          : 'Student Directory'),
+        title: Text(
+          widget.classId != null
+              ? 'Students: ${widget.classId}-${widget.section}'
+              : 'Student Directory',
+        ),
         elevation: 0,
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
@@ -42,8 +44,14 @@ class _StudentListScreenState extends State<StudentListScreen> {
               onChanged: (v) => setState(() => _searchQuery = v),
               decoration: InputDecoration(
                 hintText: 'Search by student name...',
-                prefixIcon: const Icon(Icons.search, color: AppColors.textSecondary),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppColors.textSecondary,
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(16),
+                  borderSide: BorderSide.none,
+                ),
                 filled: true,
                 fillColor: AppColors.background,
               ),
@@ -53,17 +61,24 @@ class _StudentListScreenState extends State<StudentListScreen> {
             child: Consumer<AuthService>(
               builder: (context, auth, _) {
                 final user = auth.currentUser;
-                final bool isTeacher = user?.role == 'teacher' || user?.role == 'head_teacher';
-                final List<Map<String, String>> assigned = user?.assignedClasses ?? [];
+                final bool isTeacher =
+                    user?.role == 'teacher' || user?.role == 'head_teacher';
+                final List<Map<String, String>> assigned =
+                    user?.assignedClasses ?? [];
 
                 return StreamBuilder<List<StudentModel>>(
-                  stream: _searchQuery.isEmpty 
-                    ? (widget.classId != null 
-                        ? _studentApi.getStudentsByClass(widget.classId!, widget.section!)
-                        : (isTeacher 
-                            ? _studentApi.getStudentsByMultipleClasses(assigned)
-                            : _studentApi.getAllStudents()))
-                    : _studentApi.searchStudents(_searchQuery),
+                  stream: _searchQuery.isEmpty
+                      ? (widget.classId != null
+                            ? _studentApi.getStudentsByClass(
+                                widget.classId!,
+                                widget.section!,
+                              )
+                            : (isTeacher
+                                  ? _studentApi.getStudentsByMultipleClasses(
+                                      assigned,
+                                    )
+                                  : _studentApi.getAllStudents()))
+                      : _studentApi.searchStudents(_searchQuery),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
                       return const Center(child: CircularProgressIndicator());
@@ -71,28 +86,40 @@ class _StudentListScreenState extends State<StudentListScreen> {
                     if (snapshot.hasError) {
                       return Center(child: Text('Error: ${snapshot.error}'));
                     }
-                    
+
                     var students = snapshot.data ?? [];
 
                     // Filter search results if teacher
                     if (_searchQuery.isNotEmpty && isTeacher) {
-                      students = students.where((s) => 
-                        assigned.any((c) => c['classId'] == s.classId && c['section'] == s.section)
-                      ).toList();
+                      students = students
+                          .where(
+                            (s) => assigned.any(
+                              (c) =>
+                                  c['classId'] == s.classId &&
+                                  c['section'] == s.section,
+                            ),
+                          )
+                          .toList();
                     }
-                    
+
                     if (students.isEmpty) {
                       return Center(
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.group_off_outlined, size: 60, color: Colors.grey),
+                            const Icon(
+                              Icons.group_off_outlined,
+                              size: 60,
+                              color: Colors.grey,
+                            ),
                             const SizedBox(height: 16),
                             Text(
-                              isTeacher && assigned.isEmpty 
-                                ? 'No classes assigned to you.' 
-                                : 'No students found.',
-                              style: const TextStyle(color: AppColors.textSecondary),
+                              isTeacher && assigned.isEmpty
+                                  ? 'No classes assigned to you.'
+                                  : 'No students found.',
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
                           ],
                         ),
@@ -121,13 +148,24 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   Widget _buildStudentCard(StudentModel student) {
     return InkWell(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => StudentProfileScreen(student: student))),
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => StudentProfileScreen(student: student),
+        ),
+      ),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Row(
           children: [
@@ -136,11 +174,19 @@ class _StudentListScreenState extends State<StudentListScreen> {
               backgroundColor: AppColors.primary.withValues(alpha: 0.1),
               backgroundImage: student.imageUrl.isNotEmpty
                   ? (student.imageUrl.startsWith('http')
-                      ? NetworkImage(student.imageUrl)
-                      : MemoryImage(base64Decode(student.imageUrl))) as ImageProvider
+                            ? NetworkImage(student.imageUrl)
+                            : MemoryImage(base64Decode(student.imageUrl)))
+                        as ImageProvider
                   : null,
-              child: student.imageUrl.isEmpty 
-                  ? Text(student.name[0], style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 20))
+              child: student.imageUrl.isEmpty
+                  ? Text(
+                      student.name[0],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        fontSize: 20,
+                      ),
+                    )
                   : null,
             ),
             const SizedBox(width: 16),
@@ -148,12 +194,29 @@ class _StudentListScreenState extends State<StudentListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
-                  Text('Roll No: ${student.rollNo}', style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                  Text(
+                    student.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  Text(
+                    'Roll No: ${student.rollNo}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),

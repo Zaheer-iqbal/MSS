@@ -8,16 +8,19 @@ import '../../teacher/services/teacher_api.dart';
 import '../../../../core/models/teacher_attendance_model.dart';
 import '../../../../core/services/teacher_attendance_service.dart';
 import '../../teacher/screens/attendance_summary_screen.dart'; // For AttendanceChartPainter
+import '../../../core/services/notification_service.dart';
 
 class ManageTeacherProfileScreen extends StatefulWidget {
   final UserModel teacher;
   const ManageTeacherProfileScreen({super.key, required this.teacher});
 
   @override
-  State<ManageTeacherProfileScreen> createState() => _ManageTeacherProfileScreenState();
+  State<ManageTeacherProfileScreen> createState() =>
+      _ManageTeacherProfileScreenState();
 }
 
-class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen> {
+class _ManageTeacherProfileScreenState
+    extends State<ManageTeacherProfileScreen> {
   final _teacherApi = TeacherApi();
   final _attendanceService = TeacherAttendanceService();
   late TextEditingController _nameController;
@@ -33,8 +36,12 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
     super.initState();
     _nameController = TextEditingController(text: widget.teacher.name);
     _imageUrlController = TextEditingController(text: widget.teacher.imageUrl);
-    _schedule = List<Map<String, String>>.from(widget.teacher.schedule.map((e) => Map<String, String>.from(e)));
-    _assignedClasses = List<Map<String, String>>.from(widget.teacher.assignedClasses.map((e) => Map<String, String>.from(e)));
+    _schedule = List<Map<String, String>>.from(
+      widget.teacher.schedule.map((e) => Map<String, String>.from(e)),
+    );
+    _assignedClasses = List<Map<String, String>>.from(
+      widget.teacher.assignedClasses.map((e) => Map<String, String>.from(e)),
+    );
   }
 
   @override
@@ -67,13 +74,31 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
 
     try {
       await _teacherApi.updateTeacherProfile(updatedTeacher);
+
+      // Notify Teacher
+      await NotificationService().sendNotification(
+        targetId: widget.teacher.uid,
+        title: 'Profile Updated',
+        body: 'Your profile and schedule have been updated by the Head Teacher.',
+        data: {
+          'type': 'profile_update',
+          'teacherId': widget.teacher.uid,
+        },
+      );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile updated successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -85,11 +110,31 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
     String? selectedClass;
     String? selectedSection;
     String? selectedSubject;
+    String? selectedRoom;
     TimeOfDay? startTime;
     TimeOfDay? endTime;
 
-    final List<String> days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    final List<String> classes = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th'];
+    final List<String> days = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    final List<String> classes = [
+      '1st',
+      '2nd',
+      '3rd',
+      '4th',
+      '5th',
+      '6th',
+      '7th',
+      '8th',
+      '9th',
+      '10th',
+    ];
     final List<String> sections = ['A', 'B', 'C', 'D'];
     final List<String> subjects = [
       'Mathematics',
@@ -101,7 +146,7 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
       'Art',
       'Physical Education',
       'Urdu',
-      'Islamiyat'
+      'Islamiyat',
     ];
 
     showModalBottomSheet(
@@ -121,24 +166,44 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                   Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                       Text('Add Schedule Entry', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.primary)),
-                      IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close, color: Colors.grey)),
+                      Text(
+                        'Add Schedule Entry',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close, color: Colors.grey),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Day Dropdown
                   DropdownButtonFormField<String>(
                     initialValue: selectedDay,
                     decoration: InputDecoration(
                       labelText: 'Day',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
-                    items: days.map((day) => DropdownMenuItem(value: day, child: Text(day))).toList(),
+                    items: days
+                        .map(
+                          (day) =>
+                              DropdownMenuItem(value: day, child: Text(day)),
+                        )
+                        .toList(),
                     onChanged: (val) => setSheetState(() => selectedDay = val),
                   ),
                   const SizedBox(height: 16),
@@ -149,11 +214,18 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                       Expanded(
                         child: InkWell(
                           onTap: () async {
-                            final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 9, minute: 0));
-                            if (time != null) setSheetState(() => startTime = time);
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: const TimeOfDay(hour: 9, minute: 0),
+                            );
+                            if (time != null)
+                              setSheetState(() => startTime = time);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey),
                               borderRadius: BorderRadius.circular(12),
@@ -161,8 +233,19 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(startTime?.format(context) ?? 'Start Time', style: TextStyle(color: startTime != null ? Colors.black : Colors.grey[600])),
-                                const Icon(Icons.access_time, size: 20, color: AppColors.primary),
+                                Text(
+                                  startTime?.format(context) ?? 'Start Time',
+                                  style: TextStyle(
+                                    color: startTime != null
+                                        ? Colors.black
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
                               ],
                             ),
                           ),
@@ -172,11 +255,18 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                       Expanded(
                         child: InkWell(
                           onTap: () async {
-                            final time = await showTimePicker(context: context, initialTime: const TimeOfDay(hour: 10, minute: 0));
-                            if (time != null) setSheetState(() => endTime = time);
+                            final time = await showTimePicker(
+                              context: context,
+                              initialTime: const TimeOfDay(hour: 10, minute: 0),
+                            );
+                            if (time != null)
+                              setSheetState(() => endTime = time);
                           },
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 16,
+                            ),
                             decoration: BoxDecoration(
                               border: Border.all(color: Colors.grey),
                               borderRadius: BorderRadius.circular(12),
@@ -184,8 +274,19 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text(endTime?.format(context) ?? 'End Time', style: TextStyle(color: endTime != null ? Colors.black : Colors.grey[600])),
-                                const Icon(Icons.access_time, size: 20, color: AppColors.primary),
+                                Text(
+                                  endTime?.format(context) ?? 'End Time',
+                                  style: TextStyle(
+                                    color: endTime != null
+                                        ? Colors.black
+                                        : Colors.grey[600],
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.access_time,
+                                  size: 20,
+                                  color: AppColors.primary,
+                                ),
                               ],
                             ),
                           ),
@@ -204,11 +305,22 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                           initialValue: selectedClass,
                           decoration: InputDecoration(
                             labelText: 'Class',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
-                          items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-                          onChanged: (val) => setSheetState(() => selectedClass = val),
+                          items: classes
+                              .map(
+                                (c) =>
+                                    DropdownMenuItem(value: c, child: Text(c)),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              setSheetState(() => selectedClass = val),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -218,11 +330,22 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                           initialValue: selectedSection,
                           decoration: InputDecoration(
                             labelText: 'Sec',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
-                          items: sections.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                          onChanged: (val) => setSheetState(() => selectedSection = val),
+                          items: sections
+                              .map(
+                                (s) =>
+                                    DropdownMenuItem(value: s, child: Text(s)),
+                              )
+                              .toList(),
+                          onChanged: (val) =>
+                              setSheetState(() => selectedSection = val),
                         ),
                       ),
                     ],
@@ -234,11 +357,35 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                     initialValue: selectedSubject,
                     decoration: InputDecoration(
                       labelText: 'Subject',
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                     ),
-                    items: subjects.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                    onChanged: (val) => setSheetState(() => selectedSubject = val),
+                    items: subjects
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (val) =>
+                        setSheetState(() => selectedSubject = val),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Room Input
+                  TextField(
+                    decoration: InputDecoration(
+                      labelText: 'Room (e.g. Room 102, Lab 02)',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                    ),
+                    onChanged: (val) => selectedRoom = val,
                   ),
                   const SizedBox(height: 32),
 
@@ -248,8 +395,14 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                     height: 50,
                     child: ElevatedButton(
                       onPressed: () {
-                        if (selectedDay != null && startTime != null && endTime != null && selectedClass != null && selectedSection != null && selectedSubject != null) {
-                          final timeString = '${startTime!.format(context)} - ${endTime!.format(context)}';
+                        if (selectedDay != null &&
+                            startTime != null &&
+                            endTime != null &&
+                            selectedClass != null &&
+                            selectedSection != null &&
+                            selectedSubject != null) {
+                          final timeString =
+                              '${startTime!.format(context)} - ${endTime!.format(context)}';
                           setState(() {
                             _schedule.add({
                               'day': selectedDay!,
@@ -257,21 +410,38 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                               'classId': selectedClass!,
                               'section': selectedSection!,
                               'subject': selectedSubject!,
+                              'room': selectedRoom ?? 'N/A',
                             });
                           });
                           Navigator.pop(context);
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please fill all fields'), backgroundColor: Colors.red));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please fill all fields'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
                         }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
-                      child: const Text('Add to Schedule', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                      child: const Text(
+                        'Add to Schedule',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(height: MediaQuery.of(context).viewInsets.bottom + 20),
+                  SizedBox(
+                    height: MediaQuery.of(context).viewInsets.bottom + 20,
+                  ),
                 ],
               ),
             ),
@@ -292,15 +462,29 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: classController, decoration: const InputDecoration(labelText: 'Class (e.g. 1st, 2nd, 3rd)')),
-            TextField(controller: sectionController, decoration: const InputDecoration(labelText: 'Section (e.g. A, B, C)')),
+            TextField(
+              controller: classController,
+              decoration: const InputDecoration(
+                labelText: 'Class (e.g. 1st, 2nd, 3rd)',
+              ),
+            ),
+            TextField(
+              controller: sectionController,
+              decoration: const InputDecoration(
+                labelText: 'Section (e.g. A, B, C)',
+              ),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () {
-              if (classController.text.isNotEmpty && sectionController.text.isNotEmpty) {
+              if (classController.text.isNotEmpty &&
+                  sectionController.text.isNotEmpty) {
                 setState(() {
                   _assignedClasses.add({
                     'classId': classController.text.trim(),
@@ -325,7 +509,10 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
         title: const Text('Manage Teacher Profile'),
         actions: [
           if (_isLoading)
-            const Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator(color: Colors.white))
+            const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: CircularProgressIndicator(color: Colors.white),
+            )
           else
             IconButton(onPressed: _save, icon: const Icon(Icons.check)),
         ],
@@ -344,13 +531,28 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Class Schedule', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                IconButton.filled(onPressed: _addScheduleEntry, icon: const Icon(Icons.add)),
+                const Text(
+                  'Class Schedule',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                IconButton.filled(
+                  onPressed: _addScheduleEntry,
+                  icon: const Icon(Icons.add),
+                ),
               ],
             ),
             const SizedBox(height: 16),
             if (_schedule.isEmpty)
-              const Center(child: Padding(padding: EdgeInsets.all(32.0), child: Text('No schedule entries found')))
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(32.0),
+                  child: Text('No schedule entries found'),
+                ),
+              )
             else
               ListView.separated(
                 shrinkWrap: true,
@@ -371,7 +573,10 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
   Widget _buildProfileSection() {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
       child: Column(
         children: [
           Center(
@@ -383,11 +588,17 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                   backgroundImage: _imageFile != null
                       ? FileImage(_imageFile!)
                       : (_imageUrlController.text.isNotEmpty
-                          ? (_imageUrlController.text.startsWith('http') 
-                              ? NetworkImage(_imageUrlController.text) 
-                              : MemoryImage(base64Decode(_imageUrlController.text)))
-                          : null) as ImageProvider?,
-                  child: (_imageFile == null && _imageUrlController.text.isEmpty)
+                                ? (_imageUrlController.text.startsWith('http')
+                                      ? NetworkImage(_imageUrlController.text)
+                                      : MemoryImage(
+                                          base64Decode(
+                                            _imageUrlController.text,
+                                          ),
+                                        ))
+                                : null)
+                            as ImageProvider?,
+                  child:
+                      (_imageFile == null && _imageUrlController.text.isEmpty)
                       ? const Icon(Icons.person, size: 50, color: Colors.grey)
                       : null,
                 ),
@@ -402,7 +613,11 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                         color: AppColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.camera_alt, size: 20, color: Colors.white),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        size: 20,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
@@ -410,7 +625,13 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
             ),
           ),
           const SizedBox(height: 24),
-          TextField(controller: _nameController, decoration: const InputDecoration(labelText: 'Name', prefixIcon: Icon(Icons.person))),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Name',
+              prefixIcon: Icon(Icons.person),
+            ),
+          ),
         ],
       ),
     );
@@ -446,14 +667,19 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedFile = await _picker.pickImage(source: source, imageQuality: 25);
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 25,
+      );
       if (pickedFile != null) {
         setState(() {
           _imageFile = File(pickedFile.path);
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
   }
 
@@ -471,16 +697,25 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+            boxShadow: [
+              BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Row(
                 children: [
-                   Icon(Icons.bar_chart, color: AppColors.primary),
-                   SizedBox(width: 8),
-                   Text('Attendance Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                  Icon(Icons.bar_chart, color: AppColors.primary),
+                  SizedBox(width: 8),
+                  Text(
+                    'Attendance Overview',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -498,8 +733,14 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                       ),
                       child: Center(
                         child: Text(
-                          total == 0 ? "0%" : "${(present / total * 100).toStringAsFixed(0)}%",
-                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          total == 0
+                              ? "0%"
+                              : "${(present / total * 100).toStringAsFixed(0)}%",
+                          style: const TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                     ),
@@ -509,11 +750,19 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _buildStatLite('Present', present.toString(), Colors.green),
+                        _buildStatLite(
+                          'Present',
+                          present.toString(),
+                          Colors.green,
+                        ),
                         const SizedBox(height: 8),
                         _buildStatLite('Absent', absent.toString(), Colors.red),
                         const SizedBox(height: 8),
-                        _buildStatLite('Total Days', total.toString(), Colors.blue),
+                        _buildStatLite(
+                          'Total Days',
+                          total.toString(),
+                          Colors.blue,
+                        ),
                       ],
                     ),
                   ),
@@ -529,15 +778,28 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
   Widget _buildStatLite(String label, String value, Color color) {
     return Row(
       children: [
-        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        Container(
+          width: 12,
+          height: 12,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
         const SizedBox(width: 8),
-        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+        ),
         const Spacer(),
-        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }
-
 
   Widget _buildAssignedClassesSection() {
     return Column(
@@ -546,13 +808,28 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Assigned Classes', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-            IconButton.filled(onPressed: _addAssignedClass, icon: const Icon(Icons.add)),
+            const Text(
+              'Assigned Classes',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            IconButton.filled(
+              onPressed: _addAssignedClass,
+              icon: const Icon(Icons.add),
+            ),
           ],
         ),
         const SizedBox(height: 16),
         if (_assignedClasses.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(16.0), child: Text('No classes assigned')))
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text('No classes assigned'),
+            ),
+          )
         else
           GridView.builder(
             shrinkWrap: true,
@@ -571,19 +848,29 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                 decoration: BoxDecoration(
                   color: AppColors.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                  ),
                 ),
                 child: Row(
                   children: [
                     Expanded(
                       child: Text(
                         'Class ${item['classId']}-${item['section']}',
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
+                        ),
                       ),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.close, size: 18, color: Colors.red),
-                      onPressed: () => setState(() => _assignedClasses.removeAt(index)),
+                      icon: const Icon(
+                        Icons.close,
+                        size: 18,
+                        color: Colors.red,
+                      ),
+                      onPressed: () =>
+                          setState(() => _assignedClasses.removeAt(index)),
                     ),
                   ],
                 ),
@@ -597,19 +884,43 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
   Widget _buildScheduleItem(int index, Map<String, String> entry) {
     return Container(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.primary.withValues(alpha: 0.1))),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+      ),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('${entry['day']} - ${entry['time']}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
-                Text('${entry['subject']} | Class ${entry['classId']}-${entry['section']}', style: const TextStyle(color: AppColors.textPrimary)),
+                Text(
+                  '${entry['day']} - ${entry['time']}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
+                Text(
+                  '${entry['subject']} | Class ${entry['classId']}-${entry['section']}',
+                  style: const TextStyle(color: AppColors.textPrimary),
+                ),
+                if (entry['room'] != null)
+                  Text(
+                    'Room: ${entry['room']}',
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
               ],
             ),
           ),
-          IconButton(onPressed: () => setState(() => _schedule.removeAt(index)), icon: const Icon(Icons.delete, color: Colors.red)),
+          IconButton(
+            onPressed: () => setState(() => _schedule.removeAt(index)),
+            icon: const Icon(Icons.delete, color: Colors.red),
+          ),
         ],
       ),
     );

@@ -17,19 +17,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final List<Map<String, dynamic>> _pages = [
     {
       'title': 'Welcome to MSS',
-      'description': 'Your complete digital school companion. Connect, Learn, and Grow with My Smart School.',
+      'description':
+          'Your complete digital school companion. Connect, Learn, and Grow with My Smart School.',
       'icon': Icons.school_outlined,
       'color': AppColors.primary,
     },
     {
       'title': 'Stay Connected',
-      'description': 'Real-time updates for Teachers, Students, and Parents. Never miss an important announcement.',
+      'description':
+          'Real-time updates for Teachers, Students, and Parents. Never miss an important announcement.',
       'icon': Icons.connect_without_contact_outlined,
       'color': Colors.blueAccent,
     },
     {
       'title': 'Track Progress',
-      'description': 'Monitor attendance, grades, and assignments effortlessly. Success starts with tracking.',
+      'description':
+          'Monitor attendance, grades, and assignments effortlessly. Success starts with tracking.',
       'icon': Icons.insights_outlined,
       'color': Colors.green,
     },
@@ -38,7 +41,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   Future<void> _finishOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isFirstRun', false);
-    
+
     if (mounted) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const AuthWrapper()),
@@ -81,7 +84,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       height: 8,
                       width: _currentPage == index ? 24 : 8,
                       decoration: BoxDecoration(
-                        color: _currentPage == index ? AppColors.primary : Colors.grey.shade300,
+                        color: _currentPage == index
+                            ? AppColors.primary
+                            : Colors.grey.shade300,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -105,11 +110,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 12,
+                    ),
                   ),
                   child: Text(
                     _currentPage == _pages.length - 1 ? 'Get Started' : 'Next',
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ],
@@ -124,7 +135,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 onPressed: _finishOnboarding,
                 child: const Text(
                   'Skip',
-                  style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
+                  style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 16,
+                  ),
                 ),
               ),
             ),
@@ -133,7 +147,12 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildPage(String title, String description, IconData icon, Color color) {
+  Widget _buildPage(
+    String title,
+    String description,
+    IconData icon,
+    Color color,
+  ) {
     return Padding(
       padding: const EdgeInsets.all(40.0),
       child: Column(

@@ -8,6 +8,9 @@ class NoticesApi {
   }
 
   Stream<QuerySnapshot> getNotices() {
-    return _firestore.collection('notices').orderBy('createdAt', descending: true).snapshots();
+    return _firestore
+        .collection('notices')
+        .orderBy('createdAt', descending: true)
+        .snapshots();
   }
 }

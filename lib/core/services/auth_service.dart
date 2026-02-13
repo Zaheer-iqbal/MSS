@@ -12,9 +12,17 @@ class AuthService extends ChangeNotifier {
   // Helper to save FCM Token
   Future<void> _saveDeviceToken(String uid) async {
     try {
-      String? token = await NotificationService().getToken();
+      final notificationService = NotificationService();
+      String? token = await notificationService.getToken();
       if (token != null) {
-        await _firestore.collection('users').doc(uid).update({'fcmToken': token});
+        await _firestore.collection('users').doc(uid).update({
+          'fcmToken': token,
+        });
+
+        // Also subscribe to role-based topics
+        if (_currentUser != null) {
+          await notificationService.subscribeToRoleTopics(_currentUser!.role);
+        }
       }
     } catch (e) {
       print("Error saving FCM token: $e");
@@ -35,9 +43,9 @@ class AuthService extends ChangeNotifier {
       } else {
         print("AuthService: User signed out");
         _currentUser = null;
-        // _isInitializing = false; // Don't set this to false here on logout, only initially? 
+        // _isInitializing = false; // Don't set this to false here on logout, only initially?
         // Actually, on logout we are not initializing, we are just done.
-        _isInitializing = false; 
+        _isInitializing = false;
         notifyListeners();
       }
     });
@@ -61,7 +69,7 @@ class AuthService extends ChangeNotifier {
       if (user != null) {
         // Sync name with Firebase Auth profile
         await user.updateDisplayName(name);
-        
+
         // 2. Create User Model
         UserModel newUser = UserModel(
           uid: user.uid,
@@ -74,7 +82,7 @@ class AuthService extends ChangeNotifier {
         // 3. Save to Firestore
         await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
         await _saveDeviceToken(user.uid); // Save token
-        
+
         _currentUser = newUser;
         notifyListeners();
         return null; // Success
@@ -88,25 +96,32 @@ class AuthService extends ChangeNotifier {
   }
 
   // Login
-  Future<String?> login({required String email, required String password}) async {
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
     try {
       print("AuthService: Attempting login for $email");
       UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email,
         password: password,
       );
-      
+
       print("AuthService: Firebase Auth successful. UID: ${result.user?.uid}");
 
       if (result.user != null) {
         // Optimization: If listener already fetched data, return success
         if (_currentUser != null && _currentUser!.uid == result.user!.uid) {
-           print("AuthService: User data already loaded. Skipping fetch.");
-           return null;
+          print("AuthService: User data already loaded. Skipping fetch.");
+          return null;
         }
 
         // Fetch user data including role
-        return await _fetchUserData(result.user!.uid);
+        final error = await _fetchUserData(result.user!.uid);
+        if (error == null) {
+          await _saveDeviceToken(result.user!.uid);
+        }
+        return error;
       }
       return "Login failed";
     } on FirebaseAuthException catch (e) {
@@ -122,7 +137,10 @@ class AuthService extends ChangeNotifier {
   StudentModel? _currentStudent;
   StudentModel? get currentStudent => _currentStudent;
 
-  Future<StudentModel?> loginParent({required String email, required String password}) async {
+  Future<StudentModel?> loginParent({
+    required String email,
+    required String password,
+  }) async {
     try {
       final snapshot = await _firestore
           .collection('students')
@@ -132,7 +150,7 @@ class AuthService extends ChangeNotifier {
       if (snapshot.docs.isNotEmpty) {
         final doc = snapshot.docs.first;
         final data = doc.data();
-        
+
         // Verify password in memory to avoid needing a Firestore composite index
         if (data['parentPassword'] == password) {
           final student = StudentModel.fromMap(data, doc.id);
@@ -159,15 +177,18 @@ class AuthService extends ChangeNotifier {
   // Fetch User Data from Firestore
   Future<String?> _fetchUserData(String uid) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('users').doc(uid).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
       if (doc.exists) {
         _currentUser = UserModel.fromMap(doc.data() as Map<String, dynamic>);
-        
+
         // If user is a student, try to fetch their academic record
         if (_currentUser!.role == 'student') {
           await _fetchStudentData(_currentUser!.email);
         }
-        
+
         _isInitializing = false;
         notifyListeners();
         return null; // Success
@@ -193,7 +214,10 @@ class AuthService extends ChangeNotifier {
           .get();
 
       if (snapshot.docs.isNotEmpty) {
-        _currentStudent = StudentModel.fromMap(snapshot.docs.first.data(), snapshot.docs.first.id);
+        _currentStudent = StudentModel.fromMap(
+          snapshot.docs.first.data(),
+          snapshot.docs.first.id,
+        );
       }
     } catch (e) {
       print("Error fetching student data: $e");

@@ -26,7 +26,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUserId == null) return const Center(child: CircularProgressIndicator());
+    if (_currentUserId == null)
+      return const Center(child: CircularProgressIndicator());
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -42,9 +43,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          
+
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return const Center(child: Text('No messages yet. Start a conversation from Student Profile.'));
+            return const Center(
+              child: Text(
+                'No messages yet. Start a conversation from Student Profile.',
+              ),
+            );
           }
 
           final chats = snapshot.data!;
@@ -58,34 +63,56 @@ class _ChatListScreenState extends State<ChatListScreen> {
               final otherUserName = chat['otherUserName'] ?? 'Unknown';
               final otherUserImage = chat['otherUserImage'] ?? '';
               final lastMessage = chat['lastMessage'] ?? '';
-              final timestamp = DateTime.tryParse(chat['timestamp'] ?? '') ?? DateTime.now();
+              final timestamp =
+                  DateTime.tryParse(chat['timestamp'] ?? '') ?? DateTime.now();
               final unreadCount = chat['unreadCount'] ?? 0;
               final otherUserId = chat['otherUserId'];
 
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primary.withOpacity(0.1),
-                  backgroundImage: (otherUserImage.isNotEmpty && otherUserImage.startsWith('http')) 
-                      ? NetworkImage(otherUserImage) 
+                  backgroundImage:
+                      (otherUserImage.isNotEmpty &&
+                          otherUserImage.startsWith('http'))
+                      ? NetworkImage(otherUserImage)
                       : null,
-                  child: otherUserImage.isEmpty 
-                    ? Text(otherUserName.isNotEmpty ? otherUserName[0] : '?', 
-                        style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))
-                    : (!otherUserImage.startsWith('http') 
-                        ? ClipOval(child: Image.memory(base64Decode(otherUserImage), fit: BoxFit.cover, width: 40, height: 40)) 
-                        : null),
+                  child: otherUserImage.isEmpty
+                      ? Text(
+                          otherUserName.isNotEmpty ? otherUserName[0] : '?',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        )
+                      : (!otherUserImage.startsWith('http')
+                            ? ClipOval(
+                                child: Image.memory(
+                                  base64Decode(otherUserImage),
+                                  fit: BoxFit.cover,
+                                  width: 40,
+                                  height: 40,
+                                ),
+                              )
+                            : null),
                 ),
                 title: Text(
                   otherUserName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 subtitle: Text(
                   lastMessage,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: unreadCount > 0 ? AppColors.textPrimary : AppColors.textSecondary,
-                    fontWeight: unreadCount > 0 ? FontWeight.bold : FontWeight.normal,
+                    color: unreadCount > 0
+                        ? AppColors.textPrimary
+                        : AppColors.textSecondary,
+                    fontWeight: unreadCount > 0
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                   ),
                 ),
                 trailing: Column(
@@ -93,7 +120,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   children: [
                     Text(
                       '${timestamp.hour}:${timestamp.minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
                     ),
                     if (unreadCount > 0)
                       Container(
@@ -105,7 +135,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         ),
                         child: Text(
                           '$unreadCount',
-                          style: const TextStyle(color: Colors.white, fontSize: 10),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                          ),
                         ),
                       ),
                   ],
@@ -113,7 +146,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 onTap: () {
                   // Mark as read
                   _chatService.markAsRead(_currentUserId!, otherUserId);
-                  
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -121,7 +154,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         otherUserId: otherUserId,
                         otherUserName: otherUserName,
                         otherUserImage: otherUserImage,
-                        currentUserRole: Provider.of<AuthService>(context, listen: false).currentUser?.role,
+                        currentUserRole: Provider.of<AuthService>(
+                          context,
+                          listen: false,
+                        ).currentUser?.role,
                       ),
                     ),
                   );
@@ -134,4 +170,3 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 }
-

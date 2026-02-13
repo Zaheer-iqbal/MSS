@@ -22,12 +22,12 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _teacherApi = TeacherApi();
   final _picker = ImagePicker();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
   late TextEditingController _addressController;
-  
+
   String? _imageUrl;
   bool _isLoading = false;
   File? _selectedImage;
@@ -53,13 +53,18 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedFile = await _picker.pickImage(source: source, imageQuality: 25);
+      final pickedFile = await _picker.pickImage(
+        source: source,
+        imageQuality: 25,
+      );
       if (pickedFile != null) {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
       }
     }
   }
@@ -74,7 +79,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.teacherRole),
+              leading: const Icon(
+                Icons.camera_alt,
+                color: AppColors.teacherRole,
+              ),
               title: const Text('Take Photo'),
               onTap: () {
                 Navigator.pop(context);
@@ -82,7 +90,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.teacherRole),
+              leading: const Icon(
+                Icons.photo_library,
+                color: AppColors.teacherRole,
+              ),
               title: const Text('Choose from Gallery'),
               onTap: () {
                 Navigator.pop(context);
@@ -98,10 +109,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
   Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       try {
         String finalImageUrl = _imageUrl ?? '';
-        
+
         // 1. Upload image if selected
         if (_selectedImage != null) {
           final bytes = await _selectedImage!.readAsBytes();
@@ -124,16 +135,19 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
 
         // 3. Save to Firestore
         await _teacherApi.updateTeacherProfile(updatedUser);
-        
+
         // 4. Force refresh Auth Service
         if (mounted) {
           final authService = Provider.of<AuthService>(context, listen: false);
-          await authService.refreshUser(); 
+          await authService.refreshUser();
         }
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Profile updated successfully!'),
+              backgroundColor: Colors.green,
+            ),
           );
           if (Navigator.canPop(context)) {
             Navigator.pop(context);
@@ -142,11 +156,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-             SnackBar(
-               content: Text('Error: $e'), 
-               backgroundColor: Colors.red,
-               duration: const Duration(seconds: 5),
-             ),
+            SnackBar(
+              content: Text('Error: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
           );
         }
       } finally {
@@ -161,19 +175,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
     final isDark = themeProvider.isDarkMode;
 
     return Scaffold(
-      backgroundColor: Theme
-          .of(context)
-          .scaffoldBackgroundColor,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text('My Profile'),
-        backgroundColor: Theme
-            .of(context)
-            .appBarTheme
-            .backgroundColor,
-        foregroundColor: Theme
-            .of(context)
-            .appBarTheme
-            .foregroundColor,
+        backgroundColor: Theme.of(context).appBarTheme.backgroundColor,
+        foregroundColor: Theme.of(context).appBarTheme.foregroundColor,
         elevation: 0,
         actions: [
           IconButton(
@@ -194,18 +200,31 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
               _buildImagePicker(),
               const SizedBox(height: 40),
               _buildTextField(
-                  _nameController, 'Full Name', Icons.person_outline),
+                _nameController,
+                'Full Name',
+                Icons.person_outline,
+              ),
               const SizedBox(height: 20),
               _buildTextField(
-                  _emailController, 'Email Address', Icons.email_outlined,
-                  enabled: false),
+                _emailController,
+                'Email Address',
+                Icons.email_outlined,
+                enabled: false,
+              ),
               const SizedBox(height: 20),
               _buildTextField(
-                  _phoneController, 'Phone Number', Icons.phone_outlined,
-                  keyboardType: TextInputType.phone),
+                _phoneController,
+                'Phone Number',
+                Icons.phone_outlined,
+                keyboardType: TextInputType.phone,
+              ),
               const SizedBox(height: 20),
-              _buildTextField(_addressController, 'Home Address',
-                  Icons.location_on_outlined, maxLines: 3),
+              _buildTextField(
+                _addressController,
+                'Home Address',
+                Icons.location_on_outlined,
+                maxLines: 3,
+              ),
               const SizedBox(height: 48),
               SizedBox(
                 width: double.infinity,
@@ -216,13 +235,19 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                     backgroundColor: AppColors.teacherRole,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                     elevation: 2,
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('SAVE PROFILE', style: TextStyle(
-                      fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                      : const Text(
+                          'SAVE PROFILE',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(height: 20),
@@ -231,7 +256,10 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                 height: 56,
                 child: OutlinedButton.icon(
                   onPressed: () async {
-                    await Provider.of<AuthService>(context, listen: false).signOut();
+                    await Provider.of<AuthService>(
+                      context,
+                      listen: false,
+                    ).signOut();
                     if (context.mounted) {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                     }
@@ -239,18 +267,28 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.red,
                     side: const BorderSide(color: Colors.red),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   icon: const Icon(Icons.logout),
-                  label: const Text('LOGOUT', style: TextStyle(
-                      fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  label: const Text(
+                    'LOGOUT',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
                 ),
               ),
               const SizedBox(height: 20),
               Text(
                 'UID: ${widget.user.uid}\nRole: ${widget.user.role.toUpperCase()}',
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
@@ -281,13 +319,20 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
               child: _selectedImage != null
                   ? Image.file(_selectedImage!, fit: BoxFit.cover)
                   : (_imageUrl != null && _imageUrl!.isNotEmpty)
-                      ? (_imageUrl!.startsWith('http') 
-                          ? Image.network(_imageUrl!, fit: BoxFit.cover)
-                          : Image.memory(base64Decode(_imageUrl!), fit: BoxFit.cover))
-                      : Container(
-                          color: AppColors.teacherRole.withOpacity(0.1),
-                          child: const Icon(Icons.person, size: 60, color: AppColors.teacherRole),
-                        ),
+                  ? (_imageUrl!.startsWith('http')
+                        ? Image.network(_imageUrl!, fit: BoxFit.cover)
+                        : Image.memory(
+                            base64Decode(_imageUrl!),
+                            fit: BoxFit.cover,
+                          ))
+                  : Container(
+                      color: AppColors.teacherRole.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: AppColors.teacherRole,
+                      ),
+                    ),
             ),
           ),
           Positioned(
@@ -301,7 +346,11 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
                   color: AppColors.teacherRole,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -310,8 +359,14 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
     );
   }
 
-
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {bool enabled = true, TextInputType? keyboardType, int maxLines = 1}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    bool enabled = true,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+  }) {
     final isDark = Provider.of<ThemeProvider>(context).isDarkMode;
     final bgColor = isDark ? const Color(0xFF161822) : Colors.white;
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
@@ -320,13 +375,15 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark ? [] : [
-           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
         border: isDark ? Border.all(color: Colors.white10) : null,
       ),
       child: TextFormField(
@@ -337,15 +394,25 @@ class _TeacherProfileScreenState extends State<TeacherProfileScreen> {
         style: TextStyle(color: textColor),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: TextStyle(color: isDark ? Colors.white54 : AppColors.textSecondary, fontSize: 14),
+          labelStyle: TextStyle(
+            color: isDark ? Colors.white54 : AppColors.textSecondary,
+            fontSize: 14,
+          ),
           prefixIcon: Icon(icon, color: AppColors.teacherRole, size: 22),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(16),
             borderSide: BorderSide.none,
           ),
           filled: true,
-          fillColor: enabled ? bgColor : (isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.05)),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          fillColor: enabled
+              ? bgColor
+              : (isDark
+                    ? Colors.white.withOpacity(0.05)
+                    : Colors.grey.withOpacity(0.05)),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
         validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
       ),

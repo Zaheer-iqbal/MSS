@@ -19,7 +19,7 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
   final _formKey = GlobalKey<FormState>();
   final _studentApi = StudentApi();
   final _picker = ImagePicker();
-  
+
   late TextEditingController _nameController;
   late TextEditingController _rollNoController;
   late TextEditingController _classController;
@@ -41,9 +41,15 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     _rollNoController = TextEditingController(text: widget.student?.rollNo);
     _classController = TextEditingController(text: widget.student?.classId);
     _sectionController = TextEditingController(text: widget.student?.section);
-    _parentEmailController = TextEditingController(text: widget.student?.parentEmail);
-    _parentPasswordController = TextEditingController(text: widget.student?.parentPassword);
-    _fatherNameController = TextEditingController(text: widget.student?.fatherName);
+    _parentEmailController = TextEditingController(
+      text: widget.student?.parentEmail,
+    );
+    _parentPasswordController = TextEditingController(
+      text: widget.student?.parentPassword,
+    );
+    _fatherNameController = TextEditingController(
+      text: widget.student?.fatherName,
+    );
     _phoneController = TextEditingController(text: widget.student?.phone);
     _addressController = TextEditingController(text: widget.student?.address);
     _currentImageUrl = widget.student?.imageUrl;
@@ -64,7 +70,10 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await _picker.pickImage(source: source, imageQuality: 70);
+    final pickedFile = await _picker.pickImage(
+      source: source,
+      imageQuality: 70,
+    );
     if (pickedFile != null) {
       setState(() => _selectedImage = File(pickedFile.path));
     }
@@ -73,18 +82,19 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
   Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       try {
         String finalImageUrl = _currentImageUrl ?? '';
 
         // 1. Upload new image if selected
         if (_selectedImage != null) {
-          final fileName = '${_rollNoController.text.replaceAll(RegExp(r'[^\w]+'), '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+          final fileName =
+              '${_rollNoController.text.replaceAll(RegExp(r'[^\w]+'), '_')}_${DateTime.now().millisecondsSinceEpoch}.jpg';
           final ref = FirebaseStorage.instance
               .ref()
               .child('student_profiles')
               .child(fileName);
-          
+
           final uploadTask = ref.putFile(
             _selectedImage!,
             SettableMetadata(contentType: 'image/jpeg'),
@@ -124,7 +134,10 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Details saved successfully!'), backgroundColor: Colors.green),
+            const SnackBar(
+              content: Text('Details saved successfully!'),
+              backgroundColor: Colors.green,
+            ),
           );
           Navigator.pop(context);
         }
@@ -145,10 +158,17 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.student == null ? 'Enroll Student' : 'Edit Enrollment'),
+        title: Text(
+          widget.student == null ? 'Enroll Student' : 'Edit Enrollment',
+        ),
         actions: [
           if (_isLoading)
-            const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+            const Center(
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: CircularProgressIndicator(),
+              ),
+            )
           else
             IconButton(icon: const Icon(Icons.check), onPressed: _save),
         ],
@@ -164,7 +184,11 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               const SizedBox(height: 32),
               const Text(
                 'Enrollment Details',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -174,11 +198,21 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               const SizedBox(height: 32),
               _buildTextField(_nameController, 'Full Name', Icons.person),
               const SizedBox(height: 16),
-              _buildTextField(_fatherNameController, 'Father Name', Icons.person_outline),
+              _buildTextField(
+                _fatherNameController,
+                'Father Name',
+                Icons.person_outline,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_rollNoController, 'Roll No', Icons.numbers)),
+                  Expanded(
+                    child: _buildTextField(
+                      _rollNoController,
+                      'Roll No',
+                      Icons.numbers,
+                    ),
+                  ),
                   const SizedBox(width: 16),
                   Expanded(child: _buildClassDropdown()),
                 ],
@@ -186,19 +220,49 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               const SizedBox(height: 16),
               Row(
                 children: [
-                   Expanded(child: _buildTextField(_sectionController, 'Section', Icons.grid_view)),
-                   const SizedBox(width: 16),
-                   Expanded(child: _buildTextField(_parentEmailController, 'Parent Email', Icons.email, keyboardType: TextInputType.emailAddress)),
+                  Expanded(
+                    child: _buildTextField(
+                      _sectionController,
+                      'Section',
+                      Icons.grid_view,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildTextField(
+                      _parentEmailController,
+                      'Parent Email',
+                      Icons.email,
+                      keyboardType: TextInputType.emailAddress,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 16),
-              _buildTextField(_parentPasswordController, 'Parent Password', Icons.lock_outline),
+              _buildTextField(
+                _parentPasswordController,
+                'Parent Password',
+                Icons.lock_outline,
+              ),
               const SizedBox(height: 16),
               Row(
                 children: [
-                  Expanded(child: _buildTextField(_phoneController, 'Phone', Icons.phone, keyboardType: TextInputType.phone)),
+                  Expanded(
+                    child: _buildTextField(
+                      _phoneController,
+                      'Phone',
+                      Icons.phone,
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ),
                   const SizedBox(width: 16),
-                  Expanded(child: _buildTextField(_addressController, 'Address', Icons.location_on)),
+                  Expanded(
+                    child: _buildTextField(
+                      _addressController,
+                      'Address',
+                      Icons.location_on,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 48),
@@ -210,9 +274,17 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
-                  child: Text(_isLoading ? 'Processing...' : (widget.student == null ? 'Complete Enrollment' : 'Update Details')),
+                  child: Text(
+                    _isLoading
+                        ? 'Processing...'
+                        : (widget.student == null
+                              ? 'Complete Enrollment'
+                              : 'Update Details'),
+                  ),
                 ),
               ),
             ],
@@ -237,13 +309,20 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
               child: _selectedImage != null
                   ? Image.file(_selectedImage!, fit: BoxFit.cover)
                   : (_currentImageUrl != null && _currentImageUrl!.isNotEmpty)
-                      ? (_currentImageUrl!.startsWith('http') 
-                          ? Image.network(_currentImageUrl!, fit: BoxFit.cover)
-                          : Image.memory(base64Decode(_currentImageUrl!), fit: BoxFit.cover))
-                      : Container(
-                          color: AppColors.primary.withOpacity(0.1),
-                          child: const Icon(Icons.person, size: 60, color: AppColors.primary),
-                        ),
+                  ? (_currentImageUrl!.startsWith('http')
+                        ? Image.network(_currentImageUrl!, fit: BoxFit.cover)
+                        : Image.memory(
+                            base64Decode(_currentImageUrl!),
+                            fit: BoxFit.cover,
+                          ))
+                  : Container(
+                      color: AppColors.primary.withOpacity(0.1),
+                      child: const Icon(
+                        Icons.person,
+                        size: 60,
+                        color: AppColors.primary,
+                      ),
+                    ),
             ),
           ),
           Positioned(
@@ -257,7 +336,11 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                child: const Icon(
+                  Icons.camera_alt,
+                  color: Colors.white,
+                  size: 20,
+                ),
               ),
             ),
           ),
@@ -272,8 +355,22 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
       builder: (context) => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(leading: const Icon(Icons.camera_alt), title: const Text('Camera'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.camera); }),
-          ListTile(leading: const Icon(Icons.photo_library), title: const Text('Gallery'), onTap: () { Navigator.pop(context); _pickImage(ImageSource.gallery); }),
+          ListTile(
+            leading: const Icon(Icons.camera_alt),
+            title: const Text('Camera'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.camera);
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.photo_library),
+            title: const Text('Gallery'),
+            onTap: () {
+              Navigator.pop(context);
+              _pickImage(ImageSource.gallery);
+            },
+          ),
         ],
       ),
     );
@@ -281,12 +378,15 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
 
   Widget _buildClassDropdown() {
     final classes = ['1st', '2nd', '3rd', '4th', '5th'];
-    if (_classController.text.isNotEmpty && !classes.contains(_classController.text)) {
+    if (_classController.text.isNotEmpty &&
+        !classes.contains(_classController.text)) {
       classes.add(_classController.text);
     }
-    
+
     return DropdownButtonFormField<String>(
-      initialValue: _classController.text.isEmpty ? null : _classController.text,
+      initialValue: _classController.text.isEmpty
+          ? null
+          : _classController.text,
       decoration: InputDecoration(
         labelText: 'Class',
         prefixIcon: const Icon(Icons.class_, color: AppColors.primary),
@@ -294,13 +394,20 @@ class _ManageStudentScreenState extends State<ManageStudentScreen> {
         filled: true,
         fillColor: Colors.white,
       ),
-      items: classes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+      items: classes
+          .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+          .toList(),
       onChanged: (value) => setState(() => _classController.text = value ?? ''),
       validator: (v) => (v == null || v.isEmpty) ? 'Required' : null,
     );
   }
 
-  Widget _buildTextField(TextEditingController controller, String label, IconData icon, {TextInputType? keyboardType}) {
+  Widget _buildTextField(
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType? keyboardType,
+  }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,

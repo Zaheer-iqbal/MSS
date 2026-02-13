@@ -63,7 +63,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '17545052547',
     projectId: 'mss-dc20b',
     storageBucket: 'mss-dc20b.firebasestorage.app',
-    iosClientId: '17545052547-i7lrln6j8vncq6b0iqbrbo85o515hshe.apps.googleusercontent.com',
+    iosClientId:
+        '17545052547-i7lrln6j8vncq6b0iqbrbo85o515hshe.apps.googleusercontent.com',
     iosBundleId: 'com.example.mss',
   );
 }

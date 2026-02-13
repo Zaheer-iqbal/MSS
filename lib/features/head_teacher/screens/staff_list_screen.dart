@@ -72,7 +72,9 @@ class _StaffListScreenState extends State<StaffListScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: _isSearching ? _buildSearchField() : Text(AppLocalizations.of(context)!.schoolStaff),
+        title: _isSearching
+            ? _buildSearchField()
+            : Text(AppLocalizations.of(context)!.schoolStaff),
         actions: _buildAppBarActions(),
       ),
       body: StreamBuilder<List<UserModel>>(
@@ -82,16 +84,22 @@ class _StaffListScreenState extends State<StaffListScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(child: Text(AppLocalizations.of(context)!.noStaffFound));
+            return Center(
+              child: Text(AppLocalizations.of(context)!.noStaffFound),
+            );
           }
 
           final teachers = snapshot.data!.where((teacher) {
-            final nameMatch = teacher.name.toLowerCase().contains(_searchQuery.toLowerCase());
+            final nameMatch = teacher.name.toLowerCase().contains(
+              _searchQuery.toLowerCase(),
+            );
             return nameMatch;
           }).toList();
 
           if (teachers.isEmpty) {
-            return Center(child: Text(AppLocalizations.of(context)!.noMatchingStaffFound));
+            return Center(
+              child: Text(AppLocalizations.of(context)!.noMatchingStaffFound),
+            );
           }
 
           return ListView.separated(
@@ -144,12 +152,17 @@ class _StaffCard extends StatelessWidget {
               backgroundColor: AppColors.teacherRole.withValues(alpha: 0.1),
               backgroundImage: teacher.imageUrl.isNotEmpty
                   ? (teacher.imageUrl.startsWith('http')
-                      ? NetworkImage(teacher.imageUrl)
-                      : MemoryImage(base64Decode(teacher.imageUrl)))
+                        ? NetworkImage(teacher.imageUrl)
+                        : MemoryImage(base64Decode(teacher.imageUrl)))
                   : null,
               child: teacher.imageUrl.isEmpty
-                  ? Text(teacher.name[0],
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.teacherRole))
+                  ? Text(
+                      teacher.name[0],
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.teacherRole,
+                      ),
+                    )
                   : null,
             ),
             const SizedBox(width: 16),
@@ -163,21 +176,40 @@ class _StaffCard extends StatelessWidget {
                       Expanded(
                         child: Text(
                           teacher.name,
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
                         ),
                       ),
                       StreamBuilder<TeacherAttendanceModel?>(
-                        stream: teacherAttendanceService.getAttendanceStreamForDate(teacher.uid, DateTime.now()),
+                        stream: teacherAttendanceService
+                            .getAttendanceStreamForDate(
+                              teacher.uid,
+                              DateTime.now(),
+                            ),
                         builder: (context, snapshot) {
-                          if (snapshot.connectionState == ConnectionState.waiting) {
-                            return const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2));
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const SizedBox(
+                              width: 10,
+                              height: 10,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            );
                           }
                           final attendance = snapshot.data;
                           final status = attendance?.status ?? 'Not Marked';
                           final isPresent = status == 'present';
                           final isAbsent = status == 'absent';
-                          final statusColor = isPresent ? Colors.green : (isAbsent ? Colors.red : Colors.orange);
-                          final statusIcon = isPresent ? Icons.check_circle_rounded : (isAbsent ? Icons.cancel_rounded : Icons.help_outline_rounded);
+                          final statusColor = isPresent
+                              ? Colors.green
+                              : (isAbsent ? Colors.red : Colors.orange);
+                          final statusIcon = isPresent
+                              ? Icons.check_circle_rounded
+                              : (isAbsent
+                                    ? Icons.cancel_rounded
+                                    : Icons.help_outline_rounded);
 
                           return Container(
                             padding: const EdgeInsets.all(6),
@@ -185,7 +217,11 @@ class _StaffCard extends StatelessWidget {
                               color: statusColor.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                             ),
-                            child: Icon(statusIcon, size: 24, color: statusColor),
+                            child: Icon(
+                              statusIcon,
+                              size: 24,
+                              color: statusColor,
+                            ),
                           );
                         },
                       ),
@@ -193,18 +229,31 @@ class _StaffCard extends StatelessWidget {
                   ),
                   Text(
                     teacher.email,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    AppLocalizations.of(context)!.classesAssigned(teacher.assignedClasses.length),
-                    style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.w600),
+                    AppLocalizations.of(
+                      context,
+                    )!.classesAssigned(teacher.assignedClasses.length),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 8),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+            const Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.textSecondary,
+            ),
           ],
         ),
       ),

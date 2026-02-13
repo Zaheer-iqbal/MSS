@@ -34,18 +34,24 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                   Align(
+                  Align(
                     alignment: Alignment.topRight,
                     child: IconButton(
                       onPressed: () {
-                        final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+                        final localeProvider = Provider.of<LocaleProvider>(
+                          context,
+                          listen: false,
+                        );
                         if (localeProvider.isUrdu) {
                           localeProvider.setLocale(const Locale('en'));
                         } else {
                           localeProvider.setLocale(const Locale('ur'));
                         }
                       },
-                      icon: const Icon(Icons.language, color: AppColors.primary),
+                      icon: const Icon(
+                        Icons.language,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -111,11 +117,16 @@ class RoleSelectionScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const LoginScreen(),
+                          ),
                         );
                       },
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.primary, width: 2),
+                        side: const BorderSide(
+                          color: AppColors.primary,
+                          width: 2,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
@@ -161,14 +172,14 @@ class _RoleCard extends StatelessWidget {
         if (role == 'parent') {
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const LoginScreen(isParent: true)),
+            MaterialPageRoute(
+              builder: (context) => const LoginScreen(isParent: true),
+            ),
           );
         } else {
           Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (context) => RegisterScreen(role: role),
-            ),
+            MaterialPageRoute(builder: (context) => RegisterScreen(role: role)),
           );
         }
       },
@@ -208,7 +219,11 @@ class _RoleCard extends StatelessWidget {
                 ),
               ),
             ),
-            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color.withOpacity(0.3)),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: color.withOpacity(0.3),
+            ),
           ],
         ),
       ),

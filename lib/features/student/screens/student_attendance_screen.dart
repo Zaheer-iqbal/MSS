@@ -21,7 +21,11 @@ class StudentAttendanceScreen extends StatelessWidget {
           const SizedBox(height: 24),
           const Text(
             'History',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 16),
           _buildAttendanceList(),
@@ -54,7 +58,11 @@ class StudentAttendanceScreen extends StatelessWidget {
               SizedBox(height: 8),
               Text(
                 '85%',
-                style: TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 36,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 8),
               Text(
@@ -69,7 +77,11 @@ class StudentAttendanceScreen extends StatelessWidget {
               color: Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.check_circle_outline, color: Colors.white, size: 40),
+            child: const Icon(
+              Icons.check_circle_outline,
+              color: Colors.white,
+              size: 40,
+            ),
           ),
         ],
       ),
@@ -96,12 +108,20 @@ class StudentAttendanceScreen extends StatelessWidget {
             children: [
               Text(
                 'Oct ${20 - index}, 2023', // Fake dates
-                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
-                  color: isPresent ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1),
+                  color: isPresent
+                      ? Colors.green.withOpacity(0.1)
+                      : Colors.red.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(

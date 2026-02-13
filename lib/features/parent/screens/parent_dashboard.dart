@@ -58,7 +58,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             ),
           ),
         );
-      }
+      },
     );
   }
 
@@ -71,10 +71,7 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           children: [
             const Text(
               'Parent Portal',
-              style: TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 16),
             ),
             Text(
               'Parent of ${student.name}',
@@ -89,17 +86,25 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.notifications_none, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.notifications_none,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () {},
             ),
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () async {
-                await Provider.of<AuthService>(context, listen: false).signOut();
+                await Provider.of<AuthService>(
+                  context,
+                  listen: false,
+                ).signOut();
                 if (!mounted) return;
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => const RoleSelectionScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const RoleSelectionScreen(),
+                  ),
                   (route) => false,
                 );
               },
@@ -152,18 +157,34 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
         children: [
           Container(
             padding: const EdgeInsets.all(3),
-            decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+            ),
             child: CircleAvatar(
               radius: 32,
               backgroundColor: Colors.grey.shade100,
-              backgroundImage: (student.imageUrl.isNotEmpty && student.imageUrl.startsWith('http')) 
-                  ? NetworkImage(student.imageUrl) 
+              backgroundImage:
+                  (student.imageUrl.isNotEmpty &&
+                      student.imageUrl.startsWith('http'))
+                  ? NetworkImage(student.imageUrl)
                   : null,
-              child: student.imageUrl.isEmpty 
-                  ? const Icon(Icons.person, size: 36, color: AppColors.parentRole) 
-                  : (!student.imageUrl.startsWith('http') 
-                      ? ClipOval(child: Image.memory(base64Decode(student.imageUrl), fit: BoxFit.cover, width: 64, height: 64)) 
-                      : null),
+              child: student.imageUrl.isEmpty
+                  ? const Icon(
+                      Icons.person,
+                      size: 36,
+                      color: AppColors.parentRole,
+                    )
+                  : (!student.imageUrl.startsWith('http')
+                        ? ClipOval(
+                            child: Image.memory(
+                              base64Decode(student.imageUrl),
+                              fit: BoxFit.cover,
+                              width: 64,
+                              height: 64,
+                            ),
+                          )
+                        : null),
             ),
           ),
           const SizedBox(width: 16),
@@ -173,18 +194,29 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               children: [
                 Text(
                   student.name,
-                  style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
                     'Class ${student.classId}-${student.section} | Roll No: ${student.rollNo}',
-                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ),
               ],
@@ -237,8 +269,18 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text('Attendance Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey.shade400),
+                    const Text(
+                      'Attendance Overview',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey.shade400,
+                    ),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -279,9 +321,19 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                               children: [
                                 Text(
                                   "${(percent * 100).toInt()}%",
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 24, color: AppColors.textPrimary),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                    color: AppColors.textPrimary,
+                                  ),
                                 ),
-                                const Text("Present", style: TextStyle(fontSize: 10, color: Colors.grey)),
+                                const Text(
+                                  "Present",
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -292,7 +344,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                     Expanded(
                       child: Column(
                         children: [
-                          _buildStatRow('Present', '$present Days', Colors.green),
+                          _buildStatRow(
+                            'Present',
+                            '$present Days',
+                            Colors.green,
+                          ),
                           const SizedBox(height: 12),
                           _buildStatRow('Absent', '$absent Days', Colors.red),
                           const SizedBox(height: 12),
@@ -322,104 +378,166 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               decoration: BoxDecoration(color: color, shape: BoxShape.circle),
             ),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500)),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ],
         ),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+        Text(
+          value,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildScheduleSection(StudentModel student) {
-        return StreamBuilder<List<Map<String, String>>>(
-          stream: _scheduleService.getStudentSchedule(student.classId, student.section),
-          builder: (context, snapshot) {
-            final schedule = snapshot.data ?? [];
-            
-            // Group by day
-            final Map<String, List<Map<String, String>>> groupedSchedule = {};
-            final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-            for (var day in days) {
-              groupedSchedule[day] = schedule.where((e) => e['day'] == day).toList();
-            }
+    return StreamBuilder<List<Map<String, String>>>(
+      stream: _scheduleService.getStudentSchedule(
+        student.classId,
+        student.section,
+      ),
+      builder: (context, snapshot) {
+        final schedule = snapshot.data ?? [];
 
-            return Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        // Group by day
+        final Map<String, List<Map<String, String>>> groupedSchedule = {};
+        final days = [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ];
+        for (var day in days) {
+          groupedSchedule[day] = schedule
+              .where((e) => e['day'] == day)
+              .toList();
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  const Row(
                     children: [
-                      const Row(
-                        children: [
-                          Icon(Icons.calendar_view_week, color: AppColors.parentRole),
-                          SizedBox(width: 8),
-                          Text("Weekly Schedule", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                        ],
+                      Icon(
+                        Icons.calendar_view_week,
+                        color: AppColors.parentRole,
                       ),
+                      SizedBox(width: 8),
                       Text(
-                        "${schedule.length} Classes",
-                        style: const TextStyle(color: AppColors.parentRole, fontWeight: FontWeight.bold, fontSize: 12),
+                        "Weekly Schedule",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
-                  if (schedule.isEmpty)
-                    const Center(child: Padding(
-                      padding: EdgeInsets.all(16.0),
-                      child: Text("No classes scheduled.", style: TextStyle(color: Colors.grey)),
-                    ))
-                  else
-                    DefaultTabController(
-                      length: 7,
-                      initialIndex: DateTime.now().weekday - 1,
-                      child: Column(
-                        children: [
-                          TabBar(
-                            isScrollable: true,
-                            labelColor: AppColors.parentRole,
-                            unselectedLabelColor: Colors.grey,
-                            indicatorColor: AppColors.parentRole,
-                            indicatorSize: TabBarIndicatorSize.label,
-                            labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                            tabs: days.map((day) => Tab(text: day.substring(0, 3))).toList(),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            height: 250,
-                            child: TabBarView(
-                              children: days.map((day) {
-                                final dayClasses = groupedSchedule[day] ?? [];
-                                if (dayClasses.isEmpty) {
-                                  return const Center(child: Text("No classes", style: TextStyle(color: Colors.grey, fontSize: 12)));
-                                }
-                                return ListView.builder(
-                                  shrinkWrap: true,
-                                  physics: const BouncingScrollPhysics(),
-                                  itemCount: dayClasses.length,
-                                  itemBuilder: (context, index) {
-                                    final entry = dayClasses[index];
-                                    return _buildScheduleItem(entry);
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                          ),
-                        ],
-                      ),
+                  Text(
+                    "${schedule.length} Classes",
+                    style: const TextStyle(
+                      color: AppColors.parentRole,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
                     ),
+                  ),
                 ],
               ),
-            );
-          }
+              const SizedBox(height: 20),
+              if (schedule.isEmpty)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text(
+                      "No classes scheduled.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                )
+              else
+                DefaultTabController(
+                  length: 7,
+                  initialIndex: DateTime.now().weekday - 1,
+                  child: Column(
+                    children: [
+                      TabBar(
+                        isScrollable: true,
+                        labelColor: AppColors.parentRole,
+                        unselectedLabelColor: Colors.grey,
+                        indicatorColor: AppColors.parentRole,
+                        indicatorSize: TabBarIndicatorSize.label,
+                        labelStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                        tabs: days
+                            .map((day) => Tab(text: day.substring(0, 3)))
+                            .toList(),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        height: 250,
+                        child: TabBarView(
+                          children: days.map((day) {
+                            final dayClasses = groupedSchedule[day] ?? [];
+                            if (dayClasses.isEmpty) {
+                              return const Center(
+                                child: Text(
+                                  "No classes",
+                                  style: TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              );
+                            }
+                            return ListView.builder(
+                              shrinkWrap: true,
+                              physics: const BouncingScrollPhysics(),
+                              itemCount: dayClasses.length,
+                              itemBuilder: (context, index) {
+                                final entry = dayClasses[index];
+                                return _buildScheduleItem(entry);
+                              },
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         );
+      },
+    );
   }
 
   Widget _buildCalendarSection(StudentModel student) {
@@ -431,11 +549,22 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
     final startWeekday = firstDayOfMonth.weekday; // 1 = Monday
 
     return StreamBuilder<List<Map<String, String>>>(
-      stream: _scheduleService.getStudentSchedule(student.classId, student.section),
+      stream: _scheduleService.getStudentSchedule(
+        student.classId,
+        student.section,
+      ),
       builder: (context, snapshot) {
         final schedule = snapshot.data ?? [];
         final scheduledDays = schedule.map((e) => e['day']).toSet();
-        final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        final weekdays = [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ];
 
         return Container(
           width: double.infinity,
@@ -443,24 +572,39 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-               Row(
+              Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                   Row(
+                  Row(
                     children: [
-                       Icon(Icons.date_range, color: AppColors.parentRole),
+                      Icon(Icons.date_range, color: AppColors.parentRole),
                       const SizedBox(width: 8),
-                      const Text("Calendar", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Calendar",
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   Text(
                     DateFormat('MMMM yyyy').format(now),
-                    style: const TextStyle(color: AppColors.parentRole, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: AppColors.parentRole,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -469,13 +613,62 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: const [
-                  Text("M", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("T", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("W", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("T", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("F", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("S", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
-                  Text("S", style: TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold)),
+                  Text(
+                    "M",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "T",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "W",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "T",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "F",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "S",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    "S",
+                    style: TextStyle(
+                      color: Colors.grey,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -491,18 +684,30 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                 itemCount: daysInMonth + startWeekday - 1,
                 itemBuilder: (context, index) {
                   if (index < startWeekday - 1) return const SizedBox.shrink();
-                  
+
                   final day = index - startWeekday + 2;
                   final date = DateTime(now.year, now.month, day);
                   final isToday = day == now.day;
                   final dayName = weekdays[date.weekday - 1];
                   final hasClass = scheduledDays.contains(dayName);
-                  
+
                   return Container(
                     decoration: BoxDecoration(
-                      color: isToday ? AppColors.parentRole : (hasClass ? AppColors.parentRole.withValues(alpha: 0.1) : Colors.grey.shade50),
+                      color: isToday
+                          ? AppColors.parentRole
+                          : (hasClass
+                                ? AppColors.parentRole.withValues(alpha: 0.1)
+                                : Colors.grey.shade50),
                       borderRadius: BorderRadius.circular(10),
-                      border: isToday ? null : (hasClass ? Border.all(color: AppColors.parentRole.withValues(alpha: 0.3)) : null),
+                      border: isToday
+                          ? null
+                          : (hasClass
+                                ? Border.all(
+                                    color: AppColors.parentRole.withValues(
+                                      alpha: 0.3,
+                                    ),
+                                  )
+                                : null),
                     ),
                     child: Center(
                       child: Column(
@@ -511,8 +716,12 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                           Text(
                             day.toString(),
                             style: TextStyle(
-                              color: isToday ? Colors.white : AppColors.textPrimary,
-                              fontWeight: isToday || hasClass ? FontWeight.bold : FontWeight.normal,
+                              color: isToday
+                                  ? Colors.white
+                                  : AppColors.textPrimary,
+                              fontWeight: isToday || hasClass
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
                               fontSize: 12,
                             ),
                           ),
@@ -521,7 +730,10 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
                               margin: const EdgeInsets.only(top: 2),
                               width: 4,
                               height: 4,
-                              decoration: const BoxDecoration(color: AppColors.parentRole, shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                color: AppColors.parentRole,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                         ],
                       ),
@@ -541,9 +753,15 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-         color: Colors.white,
-         borderRadius: BorderRadius.circular(24),
-         boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -552,24 +770,36 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
             children: [
               Icon(Icons.school, color: AppColors.parentRole),
               SizedBox(width: 8),
-              Text("Academic Updates", style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              Text(
+                "Academic Updates",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
             ],
           ),
           const SizedBox(height: 20),
-          if (student.assignmentMarks.isEmpty && 
-              student.quizMarks.isEmpty && 
+          if (student.assignmentMarks.isEmpty &&
+              student.quizMarks.isEmpty &&
               student.midTermMarks.isEmpty &&
               student.finalTermMarks.isEmpty)
-              Center(child: Padding(
+            Center(
+              child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   children: [
-                    Icon(Icons.menu_book_outlined, size: 48, color: Colors.grey.shade200),
+                    Icon(
+                      Icons.menu_book_outlined,
+                      size: 48,
+                      color: Colors.grey.shade200,
+                    ),
                     const SizedBox(height: 8),
-                    const Text("No academic records yet.", style: TextStyle(color: Colors.grey)),
+                    const Text(
+                      "No academic records yet.",
+                      style: TextStyle(color: Colors.grey),
+                    ),
                   ],
                 ),
-              )),
+              ),
+            ),
           _buildMarksCategory("Assignments", student.assignmentMarks),
           _buildMarksCategory("Quizzes", student.quizMarks),
           _buildMarksCategory("Mid-term", student.midTermMarks),
@@ -582,43 +812,187 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
   Widget _buildMarksCategory(String title, Map<String, dynamic> marks) {
     if (marks.isEmpty) return const SizedBox.shrink();
 
+    double totalObtained = 0;
+    double totalMax = 0;
+
+    marks.forEach((_, value) {
+      try {
+        final parts = value.toString().split('/');
+        if (parts.length == 2) {
+          totalObtained += double.parse(parts[0]);
+          totalMax += double.parse(parts[1]);
+        } else {
+          totalObtained += double.parse(value.toString());
+          totalMax += 100;
+        }
+      } catch (_) {}
+    });
+
+    final percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0.0;
+    final isPass = percentage >= 40;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(vertical: 8.0),
-          child: Text(title.toUpperCase(), style: const TextStyle(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title.toUpperCase(),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              _buildStatusBadge(isPass),
+            ],
+          ),
         ),
-        ...marks.entries.map((e) => Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        ...marks.entries.map(
+          (e) => Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  e.key,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 16,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.parentRole.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    e.value.toString(),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.parentRole,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: AppColors.background,
-            borderRadius: BorderRadius.circular(12),
+            gradient: LinearGradient(
+              colors: [
+                AppColors.primary.withValues(alpha: 0.1),
+                AppColors.primary.withValues(alpha: 0.05),
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.primary.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(e.key, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.analytics_outlined,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text(
+                    'Grand Total',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 15,
+                      color: AppColors.primary,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: AppColors.parentRole.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  e.value.toString(),
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.parentRole),
+                  '${totalObtained.toStringAsFixed(0)}/${totalMax.toStringAsFixed(0)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: Colors.white,
+                  ),
                 ),
               ),
             ],
           ),
-        )),
-        const SizedBox(height: 8),
+        ),
+        const SizedBox(height: 16),
         const Divider(),
       ],
     );
   }
+
+  Widget _buildStatusBadge(bool isPass) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isPass
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPass ? Icons.check_circle : Icons.error,
+            size: 10,
+            color: isPass ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isPass ? 'PASS' : 'FAIL',
+            style: TextStyle(
+              color: isPass ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildScheduleItem(Map<String, String> entry) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -636,7 +1010,11 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               color: AppColors.parentRole.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.access_time_rounded, color: AppColors.parentRole, size: 20),
+            child: const Icon(
+              Icons.access_time_rounded,
+              color: AppColors.parentRole,
+              size: 20,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -645,15 +1023,25 @@ class _ParentDashboardScreenState extends State<ParentDashboardScreen> {
               children: [
                 Text(
                   entry['time'] ?? "TBD",
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.parentRole, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.parentRole,
+                    fontSize: 13,
+                  ),
                 ),
                 Text(
                   entry['subject'] ?? 'Unknown',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(
                   "Teacher: ${entry['teacherName'] ?? 'Assigned'}",
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 12,
+                  ),
                 ),
               ],
             ),

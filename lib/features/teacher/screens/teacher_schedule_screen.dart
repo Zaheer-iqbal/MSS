@@ -10,17 +10,25 @@ class TeacherScheduleScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: const Text('My Class Schedule'),
-      ),
+      appBar: AppBar(title: const Text('My Class Schedule')),
       body: teacher.schedule.isEmpty
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.event_busy, size: 64, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.event_busy,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
                   SizedBox(height: 16),
-                  Text('No classes scheduled yet', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
+                  Text(
+                    'No classes scheduled yet',
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 16,
+                    ),
+                  ),
                 ],
               ),
             )
@@ -58,7 +66,10 @@ class TeacherScheduleScreen extends StatelessWidget {
               color: AppColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: const Icon(Icons.access_time_filled, color: AppColors.primary),
+            child: const Icon(
+              Icons.access_time_filled,
+              color: AppColors.primary,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -83,7 +94,10 @@ class TeacherScheduleScreen extends StatelessWidget {
                 ),
                 Text(
                   'Class ${entry['classId']}-${entry['section']}',
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 13),
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                  ),
                 ),
               ],
             ),

@@ -50,18 +50,41 @@ class _ExamMarksList extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       children: [
         if (student.midTermMarks.isNotEmpty) ...[
-          const Text('Mid Term Exams', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          const Text(
+            'Mid Term Exams',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 12),
-          ...student.midTermMarks.entries.map((e) => _buildMarkCard(e.key, e.value, 'Mid Term')),
+          ...student.midTermMarks.entries.map(
+            (e) => _buildMarkCard(e.key, e.value, 'Mid Term'),
+          ),
           const SizedBox(height: 24),
         ],
         if (student.finalTermMarks.isNotEmpty) ...[
-          const Text('Final Term Exams', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+          const Text(
+            'Final Term Exams',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
+          ),
           const SizedBox(height: 12),
-          ...student.finalTermMarks.entries.map((e) => _buildMarkCard(e.key, e.value, 'Final Term')),
+          ...student.finalTermMarks.entries.map(
+            (e) => _buildMarkCard(e.key, e.value, 'Final Term'),
+          ),
         ],
         if (student.midTermMarks.isEmpty && student.finalTermMarks.isEmpty)
-          const Center(child: Padding(padding: EdgeInsets.all(32), child: Text('No exam records found'))),
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text('No exam records found'),
+            ),
+          ),
       ],
     );
   }
@@ -87,14 +110,30 @@ class _ExamMarksList extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+              Text(
+                subject,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Text('$marks', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+                child: Text(
+                  '$marks',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.primary,
+                  ),
+                ),
               ),
             ],
           ),
@@ -143,17 +182,27 @@ class _MarksList extends StatelessWidget {
                 children: [
                   Text(
                     key,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.primary.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       '$value',
-                      style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                      ),
                     ),
                   ),
                 ],

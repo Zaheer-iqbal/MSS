@@ -8,7 +8,8 @@ class StudentListByClassScreen extends StatefulWidget {
   const StudentListByClassScreen({super.key});
 
   @override
-  State<StudentListByClassScreen> createState() => _StudentListByClassScreenState();
+  State<StudentListByClassScreen> createState() =>
+      _StudentListByClassScreenState();
 }
 
 class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
@@ -73,14 +74,14 @@ class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          
+
           List<StudentModel> students = snapshot.data ?? [];
-          
+
           // Apply search filter
           if (_searchQuery.isNotEmpty) {
             students = students.where((student) {
               return student.name.toLowerCase().contains(_searchQuery) ||
-                     student.rollNo.toString().contains(_searchQuery);
+                  student.rollNo.toString().contains(_searchQuery);
             }).toList();
           }
 
@@ -111,7 +112,10 @@ class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 12.0,
+                      horizontal: 8.0,
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -124,9 +128,14 @@ class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.headTeacherRole.withValues(alpha: 0.1),
+                            color: AppColors.headTeacherRole.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
@@ -141,37 +150,51 @@ class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
                       ],
                     ),
                   ),
-                  ...classStudents.map((student) => Card(
-                    margin: const EdgeInsets.only(bottom: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      leading: CircleAvatar(
-                        backgroundColor: AppColors.headTeacherRole.withValues(alpha: 0.1),
-                        child: Text(
-                          student.name[0].toUpperCase(),
-                          style: const TextStyle(
-                            color: AppColors.headTeacherRole,
-                            fontWeight: FontWeight.bold,
+                  ...classStudents.map(
+                    (student) => Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        leading: CircleAvatar(
+                          backgroundColor: AppColors.headTeacherRole.withValues(
+                            alpha: 0.1,
+                          ),
+                          child: Text(
+                            student.name[0].toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.headTeacherRole,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
+                        title: Text(
+                          student.name,
+                          style: const TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                        subtitle: Text('Roll No: ${student.rollNo}'),
+                        trailing: const Icon(
+                          Icons.arrow_forward_ios,
+                          size: 14,
+                          color: Colors.grey,
+                        ),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  StudentProfileScreen(student: student),
+                            ),
+                          );
+                        },
                       ),
-                      title: Text(
-                        student.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      subtitle: Text('Roll No: ${student.rollNo}'),
-                      trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => StudentProfileScreen(student: student),
-                          ),
-                        );
-                      },
                     ),
-                  )),
+                  ),
                   const SizedBox(height: 16),
                 ],
               );

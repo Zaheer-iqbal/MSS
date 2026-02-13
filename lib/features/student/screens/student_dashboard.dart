@@ -23,7 +23,11 @@ class StudentDashboard extends StatelessWidget {
             const SizedBox(height: 30),
             const Text(
               'Recent Activity',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 16),
             _buildRecentActivityList(),
@@ -46,7 +50,11 @@ class StudentDashboard extends StatelessWidget {
             ),
             Text(
               student.name.split(' ')[0],
-              style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
             ),
           ],
         ),
@@ -55,7 +63,11 @@ class StudentDashboard extends StatelessWidget {
           backgroundColor: AppColors.primary.withOpacity(0.1),
           child: Text(
             student.name[0],
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.primary),
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
           ),
         ),
       ],
@@ -86,7 +98,12 @@ class StudentDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -114,7 +131,11 @@ class StudentDashboard extends StatelessWidget {
           const SizedBox(height: 16),
           Text(
             value,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -129,16 +150,40 @@ class StudentDashboard extends StatelessWidget {
   Widget _buildRecentActivityList() {
     return Column(
       children: [
-        _buildActivityItem('Math Homework Assigned', 'Chapter 4 Exercises', '2 hours ago', Icons.book, Colors.purple),
+        _buildActivityItem(
+          'Math Homework Assigned',
+          'Chapter 4 Exercises',
+          '2 hours ago',
+          Icons.book,
+          Colors.purple,
+        ),
         const SizedBox(height: 12),
-        _buildActivityItem('Physics Quiz Graded', 'Score: 18/20', 'Yesterday', Icons.quiz, Colors.green),
+        _buildActivityItem(
+          'Physics Quiz Graded',
+          'Score: 18/20',
+          'Yesterday',
+          Icons.quiz,
+          Colors.green,
+        ),
         const SizedBox(height: 12),
-        _buildActivityItem('School Notice', 'Sports Day Registration', '2 days ago', Icons.campaign, Colors.red),
+        _buildActivityItem(
+          'School Notice',
+          'Sports Day Registration',
+          '2 days ago',
+          Icons.campaign,
+          Colors.red,
+        ),
       ],
     );
   }
 
-  Widget _buildActivityItem(String title, String subtitle, String time, IconData icon, Color color) {
+  Widget _buildActivityItem(
+    String title,
+    String subtitle,
+    String time,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -167,13 +212,32 @@ class StudentDashboard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(subtitle, style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(time, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+          Text(
+            time,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
         ],
       ),
     );

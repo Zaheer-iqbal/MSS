@@ -8,12 +8,17 @@ class ChatService {
   // Generate a consistent Chat ID for two users regardless of order
   String _getChatId(String user1, String user2) {
     List<String> ids = [user1, user2];
-    ids.sort(); 
+    ids.sort();
     return ids.join("_");
   }
 
   // Send Message
-  Future<void> sendMessage(String senderId, String receiverId, String message, {String? senderRole}) async {
+  Future<void> sendMessage(
+    String senderId,
+    String receiverId,
+    String message, {
+    String? senderRole,
+  }) async {
     try {
       final String chatId = _getChatId(senderId, receiverId);
       final DateTime timestamp = DateTime.now();
@@ -59,9 +64,10 @@ class ChatService {
             'otherUserId': senderId,
             'lastMessage': message,
             'timestamp': timestamp.toIso8601String(),
-            'unreadCount': FieldValue.increment(1), // Increment unread for receiver
+            'unreadCount': FieldValue.increment(
+              1,
+            ), // Increment unread for receiver
           }, SetOptions(merge: true));
-
     } catch (e) {
       if (kDebugMode) print("Error sending message: $e");
       rethrow;
@@ -71,16 +77,18 @@ class ChatService {
   // Get Messages Stream
   Stream<List<MessageModel>> getMessages(String senderId, String receiverId) {
     final String chatId = _getChatId(senderId, receiverId);
-    
+
     return _firestore
         .collection('chats')
         .doc(chatId)
         .collection('messages')
         .orderBy('timestamp', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => MessageModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => MessageModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
 
   // Get My Chats List Stream
@@ -96,21 +104,27 @@ class ChatService {
           for (var doc in snapshot.docs) {
             Map<String, dynamic> chatData = doc.data();
             String otherUserId = chatData['otherUserId'];
-            
+
             // Fetch other user details for display name/image
-            DocumentSnapshot userDoc = await _firestore.collection('users').doc(otherUserId).get();
+            DocumentSnapshot userDoc = await _firestore
+                .collection('users')
+                .doc(otherUserId)
+                .get();
             if (userDoc.exists) {
               chatData['otherUserName'] = userDoc['name'] ?? 'Unknown User';
               chatData['otherUserImage'] = userDoc['imageUrl'] ?? '';
               chats.add(chatData);
             } else {
               // Fallback for Parents who don't have a 'users' record yet
-              DocumentSnapshot studentDoc = await _firestore.collection('students').doc(otherUserId).get();
+              DocumentSnapshot studentDoc = await _firestore
+                  .collection('students')
+                  .doc(otherUserId)
+                  .get();
               if (studentDoc.exists) {
-                chatData['otherUserName'] = studentDoc['fatherName'] != null 
-                    ? "${studentDoc['fatherName']} (Parent)" 
+                chatData['otherUserName'] = studentDoc['fatherName'] != null
+                    ? "${studentDoc['fatherName']} (Parent)"
                     : "Parent of ${studentDoc['name']}";
-                chatData['otherUserImage'] = studentDoc['imageUrl'] ?? ''; 
+                chatData['otherUserImage'] = studentDoc['imageUrl'] ?? '';
                 chats.add(chatData);
               }
             }
@@ -118,7 +132,7 @@ class ChatService {
           return chats;
         });
   }
-  
+
   // Mark as Read
   Future<void> markAsRead(String userId, String otherUserId) async {
     await _firestore
@@ -148,19 +162,27 @@ class ChatService {
   // Helper to find user ID by email
   Future<String?> getUserIdByEmail(String email) async {
     if (email.isEmpty) return null;
-    
+
     // 1. Check primary 'users' collection
-    final snapshot = await _firestore.collection('users').where('email', isEqualTo: email).limit(1).get();
+    final snapshot = await _firestore
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
     if (snapshot.docs.isNotEmpty) {
       return snapshot.docs.first.id;
     }
-    
+
     // 2. Fallback: Check 'students' collection for parents (for older enrollments)
-    final parentSnapshot = await _firestore.collection('students').where('parentEmail', isEqualTo: email).limit(1).get();
+    final parentSnapshot = await _firestore
+        .collection('students')
+        .where('parentEmail', isEqualTo: email)
+        .limit(1)
+        .get();
     if (parentSnapshot.docs.isNotEmpty) {
       return parentSnapshot.docs.first.id;
     }
-    
+
     return null;
   }
 }

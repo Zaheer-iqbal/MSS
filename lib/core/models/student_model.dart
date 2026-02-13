@@ -75,17 +75,39 @@ class StudentModel {
       email: map['email'] ?? '',
       parentEmail: map['parentEmail'] ?? '',
       parentPassword: map['parentPassword'] ?? '',
-      quizMarks: (map['quizMarks'] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
-      assignmentMarks: (map['assignmentMarks'] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
-      midTermMarks: (map['midTermMarks'] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
-      finalTermMarks: (map['finalTermMarks'] as Map?)?.map((k, v) => MapEntry(k.toString(), v)) ?? {},
+      quizMarks:
+          (map['quizMarks'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), v),
+          ) ??
+          {},
+      assignmentMarks:
+          (map['assignmentMarks'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), v),
+          ) ??
+          {},
+      midTermMarks:
+          (map['midTermMarks'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), v),
+          ) ??
+          {},
+      finalTermMarks:
+          (map['finalTermMarks'] as Map?)?.map(
+            (k, v) => MapEntry(k.toString(), v),
+          ) ??
+          {},
       fatherName: map['fatherName'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'] ?? '',
       imageUrl: map['imageUrl'] ?? '',
       remarks: map['remarks'] ?? '',
-      createdAt: DateTime.parse(map['createdAt'] ?? DateTime.now().toIso8601String()),
-      updatedAt: DateTime.parse(map['updatedAt'] ?? map['createdAt'] ?? DateTime.now().toIso8601String()),
+      createdAt: DateTime.parse(
+        map['createdAt'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        map['updatedAt'] ??
+            map['createdAt'] ??
+            DateTime.now().toIso8601String(),
+      ),
     );
   }
 

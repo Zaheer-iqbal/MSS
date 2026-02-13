@@ -30,7 +30,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   Future<void> _signUp() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       final authService = Provider.of<AuthService>(context, listen: false);
       String? error = await authService.signUp(
         email: _emailController.text.trim(),
@@ -88,11 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       color: roleColor.withOpacity(0.1),
                       shape: BoxShape.circle,
                     ),
-                    child: Icon(
-                      _getRoleIcon(),
-                      size: 40,
-                      color: roleColor,
-                    ),
+                    child: Icon(_getRoleIcon(), size: 40, color: roleColor),
                   ),
                   const SizedBox(height: 24),
                   Text(
@@ -120,8 +116,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           controller: _nameController,
                           label: 'Full Name',
                           icon: Icons.person_outline,
-                          validator: (value) => 
-                            (value == null || value.isEmpty) ? 'Please enter your name' : null,
+                          validator: (value) => (value == null || value.isEmpty)
+                              ? 'Please enter your name'
+                              : null,
                         ),
                         const SizedBox(height: 20),
                         _buildTextField(
@@ -129,8 +126,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           label: 'Email Address',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (value) => 
-                            (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                          validator: (value) =>
+                              (value == null || !value.contains('@'))
+                              ? 'Enter a valid email'
+                              : null,
                         ),
                         const SizedBox(height: 20),
                         _buildTextField(
@@ -140,13 +139,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           obscureText: _obscurePassword,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: AppColors.textSecondary,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
-                          validator: (value) => 
-                            (value == null || value.length < 6) ? 'Password must be 6+ chars' : null,
+                          validator: (value) =>
+                              (value == null || value.length < 6)
+                              ? 'Password must be 6+ chars'
+                              : null,
                         ),
                         const SizedBox(height: 32),
                         SizedBox(
@@ -163,7 +168,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               elevation: 2,
                             ),
                             child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
                                 : const Text(
                                     'CREATE ACCOUNT',
                                     style: TextStyle(
@@ -185,7 +192,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             top: 40,
             left: 16,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -196,21 +206,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   Color _getRoleColor() {
     switch (widget.role) {
-      case 'school': return AppColors.schoolRole;
-      case 'teacher': return AppColors.teacherRole;
-      case 'head_teacher': return AppColors.headTeacherRole;
-      case 'parent': return AppColors.parentRole;
-      default: return AppColors.primary;
+      case 'school':
+        return AppColors.schoolRole;
+      case 'teacher':
+        return AppColors.teacherRole;
+      case 'head_teacher':
+        return AppColors.headTeacherRole;
+      case 'parent':
+        return AppColors.parentRole;
+      default:
+        return AppColors.primary;
     }
   }
 
   IconData _getRoleIcon() {
     switch (widget.role) {
-      case 'school': return Icons.school;
-      case 'teacher': return Icons.person_outline;
-      case 'head_teacher': return Icons.admin_panel_settings;
-      case 'parent': return Icons.family_restroom;
-      default: return Icons.person_add;
+      case 'school':
+        return Icons.school;
+      case 'teacher':
+        return Icons.person_outline;
+      case 'head_teacher':
+        return Icons.admin_panel_settings;
+      case 'parent':
+        return Icons.family_restroom;
+      default:
+        return Icons.person_add;
     }
   }
 
@@ -243,7 +263,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          labelStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+          ),
           prefixIcon: Icon(icon, color: _getRoleColor(), size: 22),
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
@@ -252,7 +275,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );

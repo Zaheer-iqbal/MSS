@@ -8,6 +8,9 @@ class FeesApi {
   }
 
   Stream<QuerySnapshot> getFees(String studentId) {
-    return _firestore.collection('fees').where('studentId', isEqualTo: studentId).snapshots();
+    return _firestore
+        .collection('fees')
+        .where('studentId', isEqualTo: studentId)
+        .snapshots();
   }
 }

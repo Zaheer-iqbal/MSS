@@ -20,9 +20,11 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
 
   final List<Widget> _screens = [
     const TeacherDashboard(),
-    const ClassSelectionScreen(assessmentType: 'View'), // Changed from generic 'Classes'
-    const StudentListScreen(), 
-    const ChatListScreen(), 
+    const ClassSelectionScreen(
+      assessmentType: 'View',
+    ), // Changed from generic 'Classes'
+    const StudentListScreen(),
+    const ChatListScreen(),
     const EnrollStudentScreen(),
   ];
 
@@ -47,17 +49,30 @@ class _TeacherMainScreenState extends State<TeacherMainScreen> {
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: isDark ? const Color(0xFF0F111A) : Colors.white,
-          selectedItemColor: AppColors.teacherRole, // Use teal/primary for selected
+          selectedItemColor:
+              AppColors.teacherRole, // Use teal/primary for selected
           unselectedItemColor: isDark ? Colors.grey : AppColors.textSecondary,
           type: BottomNavigationBarType.fixed,
           showUnselectedLabels: true,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Classes'),
-            BottomNavigationBarItem(icon: Icon(Icons.people), label: 'Students'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_add_outlined), label: 'Enroll'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people),
+              label: 'Students',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_add_outlined),
+              label: 'Enroll',
+            ),
           ],
         ),
       ),

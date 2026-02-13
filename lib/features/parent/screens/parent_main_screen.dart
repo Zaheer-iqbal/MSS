@@ -5,9 +5,12 @@ import '../../../core/models/student_model.dart';
 import '../../../core/providers/theme_provider.dart';
 import '../../teacher/screens/chat_list_screen.dart';
 import 'parent_dashboard.dart';
-import '../../teacher/screens/student_profile_screen.dart'; 
+import '../../teacher/screens/student_profile_screen.dart';
 import '../../chat/services/chat_service.dart';
 import '../../../core/services/auth_service.dart';
+import '../../school/screens/school_events_screen.dart';
+import '../../school/services/school_api.dart';
+import '../../../core/models/school_event_model.dart';
 
 class ParentMainScreen extends StatefulWidget {
   final StudentModel student;
@@ -29,6 +32,7 @@ class _ParentMainScreenState extends State<ParentMainScreen> {
     _screens = [
       ParentDashboardScreen(student: widget.student),
       const ChatListScreen(),
+      const SchoolEventsScreen(),
       StudentProfileScreen(student: widget.student),
     ];
   }
@@ -54,16 +58,21 @@ class _ParentMainScreenState extends State<ParentMainScreen> {
           currentIndex: _currentIndex,
           onTap: (index) => setState(() => _currentIndex = index),
           backgroundColor: isDark ? const Color(0xFF0F111A) : Colors.white,
-          selectedItemColor: AppColors.parentRole, 
+          selectedItemColor: AppColors.parentRole,
           unselectedItemColor: isDark ? Colors.grey : AppColors.textSecondary,
           type: BottomNavigationBarType.fixed,
           showUnselectedLabels: true,
           elevation: 0,
           items: [
-            const BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
             BottomNavigationBarItem(
               icon: StreamBuilder<int>(
-                stream: _chatService.getTotalUnreadCount(context.read<AuthService>().currentUser?.uid ?? ''),
+                stream: _chatService.getTotalUnreadCount(
+                  context.read<AuthService>().currentUser?.uid ?? '',
+                ),
                 builder: (context, snapshot) {
                   final unreadCount = snapshot.data ?? 0;
                   return Stack(
@@ -96,11 +105,51 @@ class _ParentMainScreenState extends State<ParentMainScreen> {
                         ),
                     ],
                   );
-                }
+                },
               ),
               label: 'Chat',
             ),
-            const BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: StreamBuilder<List<SchoolEventModel>>(
+                stream: SchoolApi().getEvents(),
+                builder: (context, snapshot) {
+                  final events = snapshot.data ?? [];
+                  final today = DateTime.now();
+                  final hasTodayEvent = events.any((e) => 
+                    e.date.year == today.year && 
+                    e.date.month == today.month && 
+                    e.date.day == today.day
+                  );
+
+                  return Stack(
+                    children: [
+                      const Icon(Icons.event_note),
+                      if (hasTodayEvent)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(2),
+                            decoration: const BoxDecoration(
+                              color: Colors.orange,
+                              shape: BoxShape.circle,
+                            ),
+                            constraints: const BoxConstraints(
+                              minWidth: 8,
+                              minHeight: 8,
+                            ),
+                          ),
+                        ),
+                    ],
+                  );
+                },
+              ),
+              label: 'Events',
+            ),
+            const BottomNavigationBarItem(
+              icon: Icon(Icons.person),
+              label: 'Profile',
+            ),
           ],
         ),
       ),

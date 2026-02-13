@@ -24,7 +24,8 @@ class _HeadTeacherMainScreenState extends State<HeadTeacherMainScreen> {
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
 
-    if (user == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (user == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     final List<Widget> screens = [
       const HeadDashboard(),
@@ -56,10 +57,22 @@ class _HeadTeacherMainScreenState extends State<HeadTeacherMainScreen> {
           showUnselectedLabels: true,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.dashboard_outlined), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.people_alt_outlined), label: 'Staff'),
-            BottomNavigationBarItem(icon: Icon(Icons.chat_bubble_outline), label: 'Chat'),
-            BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_outlined),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_alt_outlined),
+              label: 'Staff',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_bubble_outline),
+              label: 'Chat',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              label: 'Profile',
+            ),
           ],
         ),
       ),

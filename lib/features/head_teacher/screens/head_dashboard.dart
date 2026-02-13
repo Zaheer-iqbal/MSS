@@ -9,7 +9,7 @@ import 'staff_list_screen.dart';
 import 'head_teacher_profile_screen.dart';
 import 'student_list_by_class_screen.dart';
 import 'events_screen.dart';
-import 'reports_screen.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class HeadDashboard extends StatelessWidget {
   const HeadDashboard({super.key});
@@ -29,14 +29,15 @@ class HeadDashboard extends StatelessWidget {
               name: user?.name ?? AppLocalizations.of(context)!.headTeacher,
               role: AppLocalizations.of(context)!.headTeacher,
               roleColor: AppColors.headTeacherRole,
-              imageUrl: user?.imageUrl, 
+              imageUrl: user?.imageUrl,
               onLogout: () => authService.signOut(),
               onAvatarTap: () {
                 if (user != null) {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => HeadTeacherProfileScreen(user: user),
+                      builder: (context) =>
+                          HeadTeacherProfileScreen(user: user),
                     ),
                   );
                 }
@@ -47,7 +48,7 @@ class HeadDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                   Text(
+                  Text(
                     AppLocalizations.of(context)!.schoolOverview,
                     style: const TextStyle(
                       fontSize: 18,
@@ -74,7 +75,8 @@ class HeadDashboard extends StatelessWidget {
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const StudentListByClassScreen(),
+                              builder: (context) =>
+                                  const StudentListByClassScreen(),
                             ),
                           ),
                         ),
@@ -97,9 +99,7 @@ class HeadDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  _buildAnalyticsSection(context),
-                  const SizedBox(height: 32),
-                   Text(
+                  Text(
                     AppLocalizations.of(context)!.administrativeTools,
                     style: const TextStyle(
                       fontSize: 18,
@@ -121,7 +121,9 @@ class HeadDashboard extends StatelessWidget {
                         color: AppColors.headTeacherRole,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const StaffListScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const StaffListScreen(),
+                          ),
                         ),
                       ),
                       ActionIcon(
@@ -136,114 +138,198 @@ class HeadDashboard extends StatelessWidget {
                         color: AppColors.headTeacherRole,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const EventsScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const EventsScreen(),
+                          ),
                         ),
-                      ),
-                      ActionIcon(
-                        label: AppLocalizations.of(context)!.reports,
-                        icon: Icons.analytics,
-                        color: AppColors.headTeacherRole,
-                        onTap: () => Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (context) => const ReportsScreen()),
-                        ),
-                      ),
-                      ActionIcon(
-                        label: AppLocalizations.of(context)!.settings,
-                        icon: Icons.settings,
-                        color: AppColors.headTeacherRole,
-                        onTap: () {},
                       ),
                     ],
                   ),
                 ],
               ),
             ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0),
+              child: Text(
+                'Overall Statistics',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            _buildOverallReportsSection(),
+            const SizedBox(height: 32),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAnalyticsSection(BuildContext context) {
+  Widget _buildOverallReportsSection() {
+    final api = SchoolApi();
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Analytics Overview',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textPrimary,
-          ),
+        _buildAttendanceCard(
+          title: 'Overall Student Attendance',
+          stream: api.getOverallCumulativeStudentAttendance(),
+          color: Colors.green,
+          noDataMessage: 'No student attendance records found yet',
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text('Attendance Density', style: TextStyle(fontWeight: FontWeight.bold)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: const Text('Live', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                height: 150,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _buildBar('Mon', 0.6, Colors.indigo),
-                    _buildBar('Tue', 0.8, Colors.teal),
-                    _buildBar('Wed', 0.4, Colors.orange),
-                    _buildBar('Thu', 0.9, Colors.pink),
-                    _buildBar('Fri', 0.7, Colors.blue),
-                    _buildBar('Sat', 0.3, Colors.amber),
-                  ],
-                ),
-              ),
-            ],
-          ),
+        _buildAttendanceCard(
+          title: 'Overall Teacher Attendance',
+          stream: api.getOverallCumulativeTeacherAttendance(),
+          color: Colors.indigo,
+          noDataMessage: 'No teacher attendance records found yet',
         ),
       ],
     );
   }
 
-  Widget _buildBar(String label, double heightFactor, Color color) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        Container(
-          width: 30,
-          height: 100 * heightFactor,
-          decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.8),
-            borderRadius: BorderRadius.circular(8),
+  Widget _buildAttendanceCard({
+    required String title,
+    required Stream<Map<String, int>> stream,
+    required Color color,
+    required String noDataMessage,
+  }) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
           ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 20),
+          StreamBuilder<Map<String, int>>(
+            stream: stream,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final data =
+                  snapshot.data ??
+                  {'present': 0, 'absent': 0, 'late': 0, 'total': 0};
+              final total = data['total']?.toDouble() ?? 0.0;
+
+              if (total == 0) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Text(
+                      noDataMessage,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                );
+              }
+
+              return Row(
+                children: [
+                  SizedBox(
+                    height: 100,
+                    width: 100,
+                    child: PieChart(
+                      PieChartData(
+                        sectionsSpace: 0,
+                        centerSpaceRadius: 30,
+                        sections: [
+                          PieChartSectionData(
+                            value: (data['present'] ?? 0).toDouble(),
+                            color: color,
+                            radius: 10,
+                            showTitle: false,
+                          ),
+                          PieChartSectionData(
+                            value: (data['absent'] ?? 0).toDouble(),
+                            color: Colors.red.shade400,
+                            radius: 10,
+                            showTitle: false,
+                          ),
+                          if (data.containsKey('late'))
+                            PieChartSectionData(
+                              value: (data['late'] ?? 0).toDouble(),
+                              color: Colors.orange.shade400,
+                              radius: 10,
+                              showTitle: false,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 32),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        _buildStatusRow('Present', data['present'] ?? 0, color),
+                        const SizedBox(height: 8),
+                        _buildStatusRow(
+                          'Absent',
+                          data['absent'] ?? 0,
+                          Colors.red.shade400,
+                        ),
+                        if (data.containsKey('late')) ...[
+                          const SizedBox(height: 8),
+                          _buildStatusRow(
+                            'Late',
+                            data['late'] ?? 0,
+                            Colors.orange.shade400,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  Widget _buildStatusRow(String label, int count, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+        Text(
+          count.toString(),
+          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+        ),
       ],
     );
   }

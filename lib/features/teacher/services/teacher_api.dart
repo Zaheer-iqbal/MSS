@@ -10,14 +10,20 @@ class TeacherApi {
         .collection('users')
         .where('role', isEqualTo: 'teacher')
         .snapshots()
-        .map((snapshot) =>
-            snapshot.docs.map((doc) => UserModel.fromMap(doc.data())).toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => UserModel.fromMap(doc.data()))
+              .toList(),
+        );
   }
 
   // Update teacher data (schedule, image, etc.)
   Future<void> updateTeacherProfile(UserModel teacher) async {
     try {
-      await _firestore.collection('users').doc(teacher.uid).update(teacher.toMap());
+      await _firestore
+          .collection('users')
+          .doc(teacher.uid)
+          .update(teacher.toMap());
     } catch (e) {
       rethrow;
     }

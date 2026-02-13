@@ -7,7 +7,9 @@ class StudentApi {
   // Add a new student
   Future<String> addStudent(StudentModel student) async {
     try {
-      final docRef = await _firestore.collection('students').add(student.toMap());
+      final docRef = await _firestore
+          .collection('students')
+          .add(student.toMap());
       return docRef.id;
     } catch (e) {
       rethrow;
@@ -17,35 +19,52 @@ class StudentApi {
   // Update student data (including marks)
   Future<void> updateStudent(StudentModel student) async {
     try {
-      await _firestore.collection('students').doc(student.id).update(student.toMap());
+      await _firestore
+          .collection('students')
+          .doc(student.id)
+          .update(student.toMap());
     } catch (e) {
       rethrow;
     }
   }
 
   // Get students for a specific class/section
-  Stream<List<StudentModel>> getStudentsByClass(String classId, String section) {
+  Stream<List<StudentModel>> getStudentsByClass(
+    String classId,
+    String section,
+  ) {
     return _firestore
         .collection('students')
         .where('classId', isEqualTo: classId)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
-            .where((student) => student.section.toLowerCase() == section.toLowerCase())
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+              .where(
+                (student) =>
+                    student.section.toLowerCase() == section.toLowerCase(),
+              )
+              .toList(),
+        );
   }
 
   // Get students for multiple classes/sections (for teachers)
-  Stream<List<StudentModel>> getStudentsByMultipleClasses(List<Map<String, String>> assigned) {
+  Stream<List<StudentModel>> getStudentsByMultipleClasses(
+    List<Map<String, String>> assigned,
+  ) {
     if (assigned.isEmpty) return Stream.value([]);
-    
+
     return _firestore.collection('students').snapshots().map((snapshot) {
       return snapshot.docs
           .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
-          .where((student) => assigned.any((c) => 
-            c['classId'] == student.classId && 
-            c['section'].toString().toLowerCase() == student.section.toLowerCase()
-          ))
+          .where(
+            (student) => assigned.any(
+              (c) =>
+                  c['classId'] == student.classId &&
+                  c['section'].toString().toLowerCase() ==
+                      student.section.toLowerCase(),
+            ),
+          )
           .toList();
     });
   }
@@ -63,7 +82,10 @@ class StudentApi {
   // Get a single student by ID
   Future<StudentModel?> getStudentById(String id) async {
     try {
-      DocumentSnapshot doc = await _firestore.collection('students').doc(id).get();
+      DocumentSnapshot doc = await _firestore
+          .collection('students')
+          .doc(id)
+          .get();
       if (doc.exists) {
         return StudentModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
       }
@@ -80,17 +102,49 @@ class StudentApi {
         .where('name', isGreaterThanOrEqualTo: query)
         .where('name', isLessThanOrEqualTo: '$query\uf8ff')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
   }
+
   // Get all students
   Stream<List<StudentModel>> getAllStudents() {
     return _firestore
         .collection('students')
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => StudentModel.fromMap(doc.data(), doc.id))
+              .toList(),
+        );
+  }
+
+  // Delete student and all associated data
+  Future<void> deleteStudent(String studentId) async {
+    try {
+      final batch = _firestore.batch();
+
+      // 1. Delete student record
+      batch.delete(_firestore.collection('students').doc(studentId));
+
+      // 2. Delete linked parent record in 'users' collection
+      batch.delete(_firestore.collection('users').doc(studentId));
+
+      // 3. Delete attendance records
+      final attendanceSnapshot = await _firestore
+          .collection('attendance')
+          .where('studentId', isEqualTo: studentId)
+          .get();
+
+      for (var doc in attendanceSnapshot.docs) {
+        batch.delete(doc.reference);
+      }
+
+      await batch.commit();
+    } catch (e) {
+      rethrow;
+    }
   }
 }

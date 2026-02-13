@@ -41,8 +41,11 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _checkTodayAttendance() async {
     final compositeId = "${widget.classId}_${widget.section}".toLowerCase();
-    final todayRecords = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
-    
+    final todayRecords = await _attendanceService.getClassAttendance(
+      compositeId,
+      DateTime.now(),
+    );
+
     if (todayRecords.isNotEmpty && mounted) {
       // Attendance already marked, redirect to summary
       Navigator.pushReplacement(
@@ -61,7 +64,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
   Future<void> _saveAttendance() async {
     if (_students.isEmpty) return;
-    
+
     setState(() => _isSaving = true);
     final authService = Provider.of<AuthService>(context, listen: false);
     final teacherId = authService.currentUser?.uid ?? 'unknown';
@@ -149,11 +152,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          
+
           _students = snapshot.data ?? [];
-          
+
           if (_students.isEmpty) {
-            return const Center(child: Text('No students enrolled in this class.'));
+            return const Center(
+              child: Text('No students enrolled in this class.'),
+            );
           }
 
           // Initialize attendance map for new students if not set
@@ -174,17 +179,25 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       children: [
                         Text(
                           'Class ${widget.classId}-${widget.section}',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
                         ),
                         Text(
                           "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
-                          style: const TextStyle(color: AppColors.textSecondary),
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                          ),
                         ),
                       ],
                     ),
                     Text(
                       '${_students.length} Students',
-                      style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.teacherRole),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.teacherRole,
+                      ),
                     ),
                   ],
                 ),
@@ -215,24 +228,50 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                       child: Row(
                         children: [
                           CircleAvatar(
-                            backgroundColor: AppColors.teacherRole.withValues(alpha: 0.1),
+                            backgroundColor: AppColors.teacherRole.withValues(
+                              alpha: 0.1,
+                            ),
                             child: Text(
                               student.name[0],
-                              style: const TextStyle(color: AppColors.teacherRole, fontWeight: FontWeight.bold),
+                              style: const TextStyle(
+                                color: AppColors.teacherRole,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
                               student.name,
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 16,
+                              ),
                             ),
                           ),
-                          _buildStatusToggle(student.id, 'P', 'present', status == 'present', Colors.green),
+                          _buildStatusToggle(
+                            student.id,
+                            'P',
+                            'present',
+                            status == 'present',
+                            Colors.green,
+                          ),
                           const SizedBox(width: 8),
-                          _buildStatusToggle(student.id, 'A', 'absent', status == 'absent', Colors.red),
+                          _buildStatusToggle(
+                            student.id,
+                            'A',
+                            'absent',
+                            status == 'absent',
+                            Colors.red,
+                          ),
                           const SizedBox(width: 8),
-                          _buildStatusToggle(student.id, 'L', 'late', status == 'late', Colors.orange),
+                          _buildStatusToggle(
+                            student.id,
+                            'L',
+                            'late',
+                            status == 'late',
+                            Colors.orange,
+                          ),
                         ],
                       ),
                     );
@@ -249,14 +288,19 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.teacherRole,
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                       elevation: 2,
                     ),
                     child: _isSaving
                         ? const CircularProgressIndicator(color: Colors.white)
                         : const Text(
                             'SUBMIT ATTENDANCE',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                   ),
                 ),
@@ -268,7 +312,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     );
   }
 
-  Widget _buildStatusToggle(String studentId, String label, String status, bool isSelected, Color color) {
+  Widget _buildStatusToggle(
+    String studentId,
+    String label,
+    String status,
+    bool isSelected,
+    Color color,
+  ) {
     return GestureDetector(
       onTap: () => setState(() => _attendanceMap[studentId] = status),
       child: Container(
@@ -277,7 +327,9 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
         decoration: BoxDecoration(
           color: isSelected ? color : color.withValues(alpha: 0.05),
           borderRadius: BorderRadius.circular(8),
-          border: isSelected ? null : Border.all(color: color.withValues(alpha: 0.2)),
+          border: isSelected
+              ? null
+              : Border.all(color: color.withValues(alpha: 0.2)),
         ),
         alignment: Alignment.center,
         child: Text(

@@ -5,10 +5,13 @@ class UserModel {
   final String role; // 'school', 'teacher', 'head_teacher', 'parent'
   final DateTime createdAt;
   final String imageUrl;
-  final List<Map<String, String>> assignedClasses; // [{'classId': '1', 'section': 'A'}, ...]
-  final List<Map<String, String>> schedule; // [{'day': 'Monday', 'time': '09:00 AM', 'classId': '1', 'section': 'A', 'subject': 'Math'}]
+  final List<Map<String, String>>
+  assignedClasses; // [{'classId': '1', 'section': 'A'}, ...]
+  final List<Map<String, String>>
+  schedule; // [{'day': 'Monday', 'time': '09:00 AM', 'classId': '1', 'section': 'A', 'subject': 'Math'}]
   final String phone;
   final String address;
+  final String? fcmToken;
 
   UserModel({
     required this.uid,
@@ -21,6 +24,7 @@ class UserModel {
     this.schedule = const [],
     this.phone = '',
     this.address = '',
+    this.fcmToken,
   });
 
   // Convert to Map for Firestore
@@ -36,6 +40,7 @@ class UserModel {
       'schedule': schedule,
       'phone': phone,
       'address': address,
+      'fcmToken': fcmToken,
     };
   }
 
@@ -48,7 +53,9 @@ class UserModel {
       role: map['role'] ?? 'parent', // Default to parent if unknown
       createdAt: DateTime.parse(map['createdAt']),
       assignedClasses: List<Map<String, String>>.from(
-        (map['assignedClasses'] ?? []).map((item) => Map<String, String>.from(item)),
+        (map['assignedClasses'] ?? []).map(
+          (item) => Map<String, String>.from(item),
+        ),
       ),
       schedule: List<Map<String, String>>.from(
         (map['schedule'] ?? []).map((item) => Map<String, String>.from(item)),
@@ -56,6 +63,7 @@ class UserModel {
       imageUrl: map['imageUrl'] ?? '',
       phone: map['phone'] ?? '',
       address: map['address'] ?? '',
+      fcmToken: map['fcmToken'],
     );
   }
 }

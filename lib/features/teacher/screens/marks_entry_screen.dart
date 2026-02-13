@@ -33,30 +33,42 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<StudentModel>>(
-              stream: StudentApi().getStudentsByClass(widget.classId, widget.section),
+              stream: StudentApi().getStudentsByClass(
+                widget.classId,
+                widget.section,
+              ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
                 if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Center(child: Text('No students found in this class.'));
+                  return const Center(
+                    child: Text('No students found in this class.'),
+                  );
                 }
 
                 final students = snapshot.data!;
                 return ListView.separated(
                   padding: const EdgeInsets.all(16),
                   itemCount: students.length,
-                  separatorBuilder: (context, index) => const SizedBox(height: 12),
+                  separatorBuilder: (context, index) =>
+                      const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final student = students[index];
 
                     return InkWell(
                       onTap: () => Navigator.push(
                         context,
-                        MaterialPageRoute(builder: (context) => StudentProfileScreen(student: student)),
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              StudentProfileScreen(student: student),
+                        ),
                       ),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(12),
@@ -65,10 +77,15 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: AppColors.primary.withOpacity(0.1),
+                              backgroundColor: AppColors.primary.withOpacity(
+                                0.1,
+                              ),
                               child: Text(
                                 student.rollNo,
-                                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -76,8 +93,19 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(student.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  Text('Roll No: ${student.rollNo}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                  Text(
+                                    student.name,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Text(
+                                    'Roll No: ${student.rollNo}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
                                   const SizedBox(height: 4),
                                   _buildRecordCount(student),
                                 ],
@@ -86,15 +114,25 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
                             ElevatedButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) => StudentProfileScreen(student: student)),
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      StudentProfileScreen(student: student),
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.primary.withOpacity(0.05),
+                                backgroundColor: AppColors.primary.withOpacity(
+                                  0.05,
+                                ),
                                 foregroundColor: AppColors.primary,
                                 elevation: 0,
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                              child: const Text('Details', style: TextStyle(fontWeight: FontWeight.bold)),
+                              child: const Text(
+                                'Details',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
                             ),
                           ],
                         ),
@@ -113,7 +151,7 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
   Widget _buildRecordCount(StudentModel student) {
     int count = 0;
     Color color = AppColors.primary;
-    
+
     if (widget.assessmentType == 'Assignments') {
       count = student.assignmentMarks.length;
       color = Colors.green;
@@ -136,7 +174,11 @@ class _MarksEntryScreenState extends State<MarksEntryScreen> {
       ),
       child: Text(
         '$count Records',
-        style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: color),
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: color,
+        ),
       ),
     );
   }

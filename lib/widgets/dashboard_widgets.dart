@@ -153,12 +153,13 @@ class DashboardHeader extends StatelessWidget {
             child: CircleAvatar(
               radius: 30,
               backgroundColor: Colors.white.withOpacity(0.2),
-              backgroundImage: imageUrl != null && imageUrl!.isNotEmpty 
-                  ? (imageUrl!.startsWith('http') 
-                      ? NetworkImage(imageUrl!) 
-                      : MemoryImage(base64Decode(imageUrl!))) as ImageProvider
+              backgroundImage: imageUrl != null && imageUrl!.isNotEmpty
+                  ? (imageUrl!.startsWith('http')
+                            ? NetworkImage(imageUrl!)
+                            : MemoryImage(base64Decode(imageUrl!)))
+                        as ImageProvider
                   : null,
-              child: (imageUrl == null || imageUrl!.isEmpty) 
+              child: (imageUrl == null || imageUrl!.isEmpty)
                   ? const Icon(Icons.person, color: Colors.white, size: 30)
                   : null,
             ),
@@ -184,7 +185,10 @@ class DashboardHeader extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(12),

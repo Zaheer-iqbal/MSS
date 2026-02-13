@@ -13,7 +13,9 @@ class ClassSelectionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    print('DEBUG: Building ClassSelectionScreen for $assessmentType'); // Debug print
+    print(
+      'DEBUG: Building ClassSelectionScreen for $assessmentType',
+    ); // Debug print
     final authService = Provider.of<AuthService>(context);
     final user = authService.currentUser;
     final classes = user?.assignedClasses ?? [];
@@ -29,11 +31,18 @@ class ClassSelectionScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.class_outlined, size: 60, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.class_outlined,
+                    size: 60,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'No classes found.',
-                    style: TextStyle(fontSize: 18, color: AppColors.textSecondary),
+                    style: TextStyle(
+                      fontSize: 18,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -44,7 +53,11 @@ class ClassSelectionScreen extends StatelessWidget {
               separatorBuilder: (context, index) => const SizedBox(height: 12),
               itemBuilder: (context, index) {
                 final cls = classes[index];
-                return _buildClassTile(context, cls['classId']!, cls['section']!);
+                return _buildClassTile(
+                  context,
+                  cls['classId']!,
+                  cls['section']!,
+                );
               },
             ),
     );
@@ -57,20 +70,17 @@ class ClassSelectionScreen extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => AttendanceScreen(
-                classId: classId,
-                section: section,
-              ),
+              builder: (context) =>
+                  AttendanceScreen(classId: classId, section: section),
             ),
           );
-        } else if (assessmentType == 'Student List' || assessmentType == 'View') {
+        } else if (assessmentType == 'Student List' ||
+            assessmentType == 'View') {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => StudentListScreen(
-                classId: classId,
-                section: section,
-              ),
+              builder: (context) =>
+                  StudentListScreen(classId: classId, section: section),
             ),
           );
         } else {
@@ -101,7 +111,11 @@ class ClassSelectionScreen extends StatelessWidget {
         'Class $classId-$section',
         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
       ),
-      trailing: const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textSecondary),
+      trailing: const Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: AppColors.textSecondary,
+      ),
     );
   }
 }

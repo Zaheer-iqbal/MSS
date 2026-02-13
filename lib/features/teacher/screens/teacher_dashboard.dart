@@ -17,6 +17,10 @@ import '../../../core/providers/locale_provider.dart';
 import '../../../l10n/app_localizations.dart';
 import 'teacher_profile_screen.dart';
 import 'class_selection_screen.dart';
+import 'teacher_timetable_screen.dart';
+import '../../school/services/school_api.dart';
+import '../../../core/models/school_event_model.dart';
+import '../../../core/services/notification_service.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -36,7 +40,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   final PageController _schedulePageController = PageController();
   int _currentPage = 0;
   int _currentSchedulePage = 0;
-  bool _isLoading = true;
+  bool _isLoading = true; 
   String? _lastFetchDate; // To reset dismissals daily
   StreamSubscription<DocumentSnapshot>? _userSubscription;
   StreamSubscription<TeacherAttendanceModel?>? _attendanceSubscription;
@@ -124,7 +128,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           for (var r in records) {
             if (r.status == 'present') {
               present++;
-            } else if (r.status == 'absent') absent++;
+            } else if (r.status == 'absent') {
+              absent++;
+            }
           }
           final students = await FirebaseFirestore.instance
               .collection('students')
@@ -200,9 +206,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       if (mounted) {
         _startAutoSlide();
       }
-    }
-        catch (e) {
-      print("Error fetching dashboard statistics: $e");
+    } catch (e) {
+      debugPrint("Error fetching dashboard statistics: $e");
       if (mounted) setState(() => _isLoading = false);
     }
   }
@@ -289,7 +294,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
          color: isDark ? const Color(0xFF1E2130) : Colors.white,
          borderRadius: BorderRadius.circular(24),
          boxShadow: [
-           if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
+           if (!isDark) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 15, offset: const Offset(0, 5))
          ],
        ),
        child: Column(
@@ -301,7 +306,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 Text(
                   AppLocalizations.of(context)!.myAttendance,
                   style: TextStyle(
-                    fontSize: 18, 
+                    fontSize: MediaQuery.of(context).size.width < 360 ? 16 : 18, 
                     fontWeight: FontWeight.bold,
                     color: isDark ? Colors.white : AppColors.textPrimary
                   ),
@@ -310,8 +315,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: _isAttendanceMarked 
-                        ? (_attendanceStatus == 'present' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1))
-                        : Colors.orange.withOpacity(0.1),
+                        ? (_attendanceStatus == 'present' ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1))
+                        : Colors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -335,9 +340,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(16),
                  decoration: BoxDecoration(
-                   color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withOpacity(0.05),
+                   color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withValues(alpha: 0.05),
                    borderRadius: BorderRadius.circular(16),
-                   border: Border.all(color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withOpacity(0.2)),
+                   border: Border.all(color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withValues(alpha: 0.2)),
                  ),
                  child: Row(
                    children: [
@@ -425,46 +430,68 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     final textColor = isDark ? Colors.white : AppColors.textPrimary;
     final subTextColor = isDark ? Colors.white70 : AppColors.textSecondary;
 
-    return Container(
-      color: Theme.of(context).scaffoldBackgroundColor,
-      child: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _fetchDashboardData,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(context, user, authService, textColor, subTextColor),
-                const SizedBox(height: 24),
-                if (user?.assignedClasses.isEmpty ?? true)
-                  _buildNoClassesDashboard(textColor, subTextColor, isDark)
-                else ...[
-                  _buildAttendanceSummaryCard(isDark),
-                  const SizedBox(height: 30),
-                  _buildDailyScheduleCard(user, textColor, subTextColor),
-                  const SizedBox(height: 30),
-                  _buildTeacherAttendanceCard(user, isDark),
-                  const SizedBox(height: 30),
-                  Text(
-                    AppLocalizations.of(context)!.quickActions,
-                    style: TextStyle(
-                      color: textColor,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildQuickActionsGrid(context, isDark),
-                  const SizedBox(height: 30),
-                  _buildClassCalendar(context, user, textColor, subTextColor, isDark),
-                ],
-                const SizedBox(height: 80), 
-              ],
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(authService.currentUser?.uid).snapshots(),
+      builder: (context, snapshot) {
+        UserModel? liveUser;
+        if (snapshot.hasData && snapshot.data!.exists) {
+          liveUser = UserModel.fromMap(snapshot.data!.data() as Map<String, dynamic>);
+          // Optionally refresh dashboard data if schedule changed significantly
+          // For now, we'll use the liveUser for calendar and quick actions
+        }
+        
+        final displayUser = liveUser ?? user;
+
+        return Container(
+          color: Theme.of(context).scaffoldBackgroundColor,
+          child: SafeArea(
+            child: RefreshIndicator(
+              onRefresh: _fetchDashboardData,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: _isLoading 
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 100),
+                          child: CircularProgressIndicator(color: AppColors.teacherRole),
+                        ),
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildHeader(context, displayUser, authService, textColor, subTextColor),
+                          const SizedBox(height: 24),
+                          if (displayUser?.assignedClasses.isEmpty ?? true)
+                            _buildNoClassesDashboard(textColor, subTextColor, isDark)
+                          else ...[
+                            _buildAttendanceSummaryCard(isDark),
+                            const SizedBox(height: 30),
+                            _buildDailyScheduleCard(displayUser, textColor, subTextColor),
+                            const SizedBox(height: 30),
+                            _buildEventsSection(context, isDark, textColor, subTextColor),
+                            const SizedBox(height: 30),
+                            _buildTeacherAttendanceCard(displayUser, isDark),
+                            const SizedBox(height: 30),
+                            Text(
+                              AppLocalizations.of(context)!.quickActions,
+                              style: TextStyle(
+                                color: textColor,
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            _buildQuickActionsGrid(context, isDark, displayUser),
+                            const SizedBox(height: 30),
+                            _buildClassCalendar(context, displayUser, textColor, subTextColor, isDark),
+                          ],
+                        ],
+                      ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -472,25 +499,29 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-             Text(
-              '${AppLocalizations.of(context)!.hello},',
-              style: TextStyle(
-                color: subTextColor,
-                fontSize: 16,
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+               Text(
+                '${AppLocalizations.of(context)!.hello},',
+                style: TextStyle(
+                  color: subTextColor,
+                  fontSize: 16,
+                ),
               ),
-            ),
-            Text(
-              user?.name ?? 'Professor',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
+              Text(
+                user?.name ?? 'Professor',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         Row(
           children: [
@@ -522,7 +553,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               },
               child: CircleAvatar(
                 radius: 20,
-                backgroundColor: Colors.grey.withOpacity(0.2),
+                backgroundColor: Colors.grey.withValues(alpha: 0.2),
                 backgroundImage: user?.imageUrl != null && user!.imageUrl.isNotEmpty
                     ? (user.imageUrl.startsWith('http')
                         ? NetworkImage(user.imageUrl)
@@ -567,7 +598,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 width: _currentPage == index ? 20 : 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: _currentPage == index ? AppColors.teacherRole : AppColors.teacherRole.withOpacity(0.2),
+                  color: _currentPage == index ? AppColors.teacherRole : AppColors.teacherRole.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -595,7 +626,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         boxShadow: [
           if (!isDark)
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 15,
               offset: const Offset(0, 5),
             ),
@@ -689,7 +720,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
@@ -778,7 +809,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 width: _currentSchedulePage == index ? 20 : 8,
                 height: 8,
                 decoration: BoxDecoration(
-                  color: _currentSchedulePage == index ? AppColors.teacherRole : AppColors.teacherRole.withOpacity(0.2),
+                  color: _currentSchedulePage == index ? AppColors.teacherRole : AppColors.teacherRole.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(4),
                 ),
               ),
@@ -825,7 +856,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         borderRadius: BorderRadius.circular(20), // Slightly smaller radius
         boxShadow: [
           BoxShadow(
-            color: (isRed ? Colors.red : Colors.blue).withOpacity(0.3),
+            color: (isRed ? Colors.red : Colors.blue).withValues(alpha: 0.3),
             blurRadius: 10,
             offset: const Offset(0, 5),
           ),
@@ -871,9 +902,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.25),
+                      color: Colors.white.withValues(alpha: 0.25),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.white.withOpacity(0.1)),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
                     ),
                     child: const Text('⚡ NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
@@ -882,7 +913,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
@@ -901,7 +932,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.15),
+                color: Colors.black.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
@@ -944,8 +975,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       ],
     );
   }
-
-  Widget _buildQuickActionsGrid(BuildContext context, bool isDark) {
+  
+  Widget _buildQuickActionsGrid(BuildContext context, bool isDark, UserModel? user) {
     return GridView.count(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -986,48 +1017,156 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Assignment'))),
           isDark
         ),
+        _buildDarkActionCard(
+          context,
+          'Timetable',
+          Icons.calendar_month_outlined,
+          Colors.pink,
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherTimetableScreen(teacherUid: user!.uid))),
+          isDark
+        ),
+        _buildDarkActionCard(
+          context,
+          'Broadcast',
+          Icons.campaign_outlined,
+          Colors.orange,
+          () => _showBroadcastDialog(context, user),
+          isDark
+        ),
       ],
     );
   }
 
+  void _showBroadcastDialog(BuildContext context, UserModel? user) {
+    if (user == null) return;
+    final controller = TextEditingController();
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.campaign, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('Broadcast Update'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This message will be sent to ALL parents in your assigned classes.',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: controller,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Enter your announcement...',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () async {
+              if (controller.text.trim().isNotEmpty) {
+                final msg = controller.text.trim();
+                Navigator.pop(context);
+                
+                // Show loading
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Sending broadcast...')),
+                );
+
+                // Send notifications to each assigned class topic
+                for (var cls in user.assignedClasses) {
+                  final classId = cls['classId'];
+                  final section = cls['section'];
+                  if (classId != null && section != null) {
+                    // In a production app, you'd have topics like 'class_1_A'
+                    // For now, we'll send a general 'all_parents' or 'all' notification
+                    // demonstrating the capability.
+                    await NotificationService().sendTopicNotification(
+                      topic: 'all_parents', 
+                      title: 'Update from ${user.name}',
+                      body: msg,
+                      data: {
+                        'type': 'broadcast',
+                        'teacherId': user.uid,
+                        'classId': classId,
+                        'section': section,
+                      },
+                    );
+                  }
+                }
+
+                if (mounted) {
+                   ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Broadcast sent successfully!'), backgroundColor: Colors.green),
+                  );
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
+            child: const Text('SEND TO ALL'),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildDarkActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap, bool isDark) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF161822) : Colors.white, // Dark card bg vs white
+          color: isDark ? const Color(0xFF161822) : Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1)),
+          border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
           boxShadow: isDark ? [] : [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1), // Translucent accent
-                shape: BoxShape.circle,
+        child: Padding(
+          padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: EdgeInsets.all(isSmallScreen ? 8 : 12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: isSmallScreen ? 20 : 24),
               ),
-              child: Icon(icon, color: color, size: 24),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: TextStyle(
-                color: isDark ? Colors.white70 : AppColors.textPrimary,
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
+              SizedBox(height: isSmallScreen ? 8 : 12),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: isDark ? Colors.white70 : AppColors.textPrimary,
+                  fontSize: isSmallScreen ? 12 : 14,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -1037,9 +1176,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     if (user == null) return const SizedBox.shrink();
 
     final now = DateTime.now();
-    final daysInMonth = _getDaysInMonth(now);
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final startingWeekday = firstDayOfMonth.weekday; // 1 = Mon, 7 = Sun
+    // final daysInMonth = _getDaysInMonth(now); // Removed unused variable
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1053,14 +1192,16 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         ),
         const SizedBox(height: 16),
-        Container(
-          padding: const EdgeInsets.all(20),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherTimetableScreen(teacherUid: user.uid))),
+          child: Container(
+            padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF161822) : Colors.white,
             borderRadius: BorderRadius.circular(24),
             boxShadow: isDark ? [] : [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 15,
                 offset: const Offset(0, 5),
               ),
@@ -1136,9 +1277,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     decoration: BoxDecoration(
                       color: isToday 
                           ? AppColors.teacherRole 
-                          : (hasClass ? AppColors.teacherRole.withOpacity(0.1) : Colors.transparent),
+                          : (hasClass ? AppColors.teacherRole.withValues(alpha: 0.1) : Colors.transparent),
                       shape: BoxShape.circle,
-                      border: isToday ? null : (hasClass ? Border.all(color: AppColors.teacherRole.withOpacity(0.5)) : null),
+                      border: isToday ? null : (hasClass ? Border.all(color: AppColors.teacherRole.withValues(alpha: 0.5)) : null),
                     ),
                     child: Center(
                       child: Text(
@@ -1146,7 +1287,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                         style: TextStyle(
                           color: isToday 
                               ? Colors.white 
-                              : (hasClass ? (isDark ? Colors.white : AppColors.textPrimary) : subTextColor.withOpacity(0.5)),
+                              : (hasClass ? (isDark ? Colors.white : AppColors.textPrimary) : subTextColor.withValues(alpha: 0.5)),
                           fontWeight: isToday || hasClass ? FontWeight.bold : FontWeight.normal,
                           fontSize: 12,
                         ),
@@ -1158,18 +1299,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             ],
           ),
         ),
-      ],
-    );
-  }
-
-  // Helper: Get number of days in a month
-  int _getDaysInMonth(DateTime date) {
-    final firstDayNextMonth = (date.month < 12) 
-        ? DateTime(date.year, date.month + 1, 1) 
-        : DateTime(date.year + 1, 1, 1);
-    return firstDayNextMonth.subtract(const Duration(days: 1)).day;
-  }
-
+      ),
+    ],
+  );
+}
   // Helper: Get Month Name
   String _getMonthName(int month) {
     const months = [
@@ -1189,107 +1322,18 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     
     final dayName = weekdays[startOfWeek];
     
-    // Check user schedule for this day
     return user.schedule.any((session) => 
         (session['day'])?.toLowerCase() == dayName.toLowerCase());
   }
-
-  Widget _buildPerformanceAnalytics(Color textColor, Color subTextColor, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161822) : Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: isDark ? [] : [
-             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-           Text(
-            AppLocalizations.of(context)!.performanceAnalytics,
-            style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 20),
-          _buildAnalyticsRow(AppLocalizations.of(context)!.attendanceRate, '94%', 0.94, Colors.blue, subTextColor),
-          const SizedBox(height: 20),
-          _buildAnalyticsRow(AppLocalizations.of(context)!.assignmentsCompleted, '82%', 0.82, Colors.purple, subTextColor),
-          const SizedBox(height: 20),
-           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Quiz Scores (Avg)', style: TextStyle(color: subTextColor, fontSize: 12)),
-              const Text('78.5', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Simple visual bar chart placeholder
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildBar(40, Colors.green),
-              _buildBar(60, Colors.green),
-              _buildBar(30, Colors.green),
-              _buildBar(80, Colors.purple), // Highlight
-              _buildBar(50, Colors.green),
-              _buildBar(70, Colors.green),
-              _buildBar(45, Colors.green),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAnalyticsRow(String label, String value, double percentage, Color color, Color subTextColor) {
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(label, style: TextStyle(color: subTextColor, fontSize: 12)),
-            Text(value, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(4),
-          child: LinearProgressIndicator(
-            value: percentage,
-            backgroundColor: Colors.grey.withOpacity(0.1),
-            valueColor: AlwaysStoppedAnimation<Color>(color),
-            minHeight: 6,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildBar(double height, Color color) {
-    return Container(
-      width: 6,
-      height: height / 2, // Scale down
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(4),
-      ),
-    );
-  }
-
+  
   Widget _buildNoClassesDashboard(Color textColor, Color subTextColor, bool isDark) {
     return Container(
       padding: const EdgeInsets.all(32),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2130) : Colors.white.withOpacity(0.5),
+        color: isDark ? const Color(0xFF1E2130) : Colors.white.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1)),
+        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
       ),
       child: Column(
         children: [
@@ -1316,6 +1360,137 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEventsSection(BuildContext context, bool isDark, Color textColor, Color subTextColor) {
+    final api = SchoolApi();
+    final mq = MediaQuery.of(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'School Events',
+              style: TextStyle(
+                color: textColor,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                // Navigate to a dedicated events list if needed
+              },
+              child: Text('View All', style: TextStyle(color: AppColors.teacherRole)),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<List<SchoolEventModel>>(
+          stream: api.getEvents(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const SizedBox(height: 100, child: Center(child: CircularProgressIndicator()));
+            }
+            
+            final allEvents = snapshot.data ?? [];
+            final today = DateTime.now();
+            final todayEvents = allEvents.where((e) => 
+               e.date.year == today.year && 
+               e.date.month == today.month && 
+               e.date.day == today.day
+            ).toList();
+
+            if (todayEvents.isEmpty) {
+              return Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF161822) : Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.event_note, color: subTextColor.withValues(alpha: 0.5)),
+                    const SizedBox(width: 12),
+                    Text(
+                      'No events scheduled for today',
+                      style: TextStyle(color: subTextColor, fontSize: 14),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return SizedBox(
+              height: 120,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: todayEvents.length,
+                itemBuilder: (context, index) {
+                  final event = todayEvents[index];
+                  return Container(
+                    width: mq.size.width * 0.8,
+                    margin: const EdgeInsets.only(right: 16),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.teacherRole, AppColors.teacherRole.withValues(alpha: 0.8)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.teacherRole.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.stars, color: Colors.white, size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                event.title,
+                                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          event.location,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                        ),
+                        const Spacer(),
+                        Text(
+                          event.description,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.8), fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

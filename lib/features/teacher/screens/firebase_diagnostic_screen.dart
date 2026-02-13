@@ -7,7 +7,8 @@ class FirebaseDiagnosticScreen extends StatefulWidget {
   const FirebaseDiagnosticScreen({super.key});
 
   @override
-  State<FirebaseDiagnosticScreen> createState() => _FirebaseDiagnosticScreenState();
+  State<FirebaseDiagnosticScreen> createState() =>
+      _FirebaseDiagnosticScreenState();
 }
 
 class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
@@ -28,8 +29,8 @@ class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
       final user = FirebaseAuth.instance.currentUser;
       setState(() {
         _projectId = app.options.projectId;
-        _authStatus = user != null 
-            ? 'Logged in as ${user.email} (${user.uid})' 
+        _authStatus = user != null
+            ? 'Logged in as ${user.email} (${user.uid})'
             : 'Not Logged In';
       });
     } catch (e) {
@@ -46,13 +47,15 @@ class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
     });
 
     try {
-      final testRef = FirebaseFirestore.instance.collection('diagnostic').doc('test_doc');
+      final testRef = FirebaseFirestore.instance
+          .collection('diagnostic')
+          .doc('test_doc');
       await testRef.set({
         'timestamp': FieldValue.serverTimestamp(),
         'test_msg': 'Hello from diagnostic',
         'device_time': DateTime.now().toString(),
       });
-      
+
       setState(() {
         _status = 'Write SUCCESS! Rules are working.';
         _statusColor = Colors.green;
@@ -72,15 +75,17 @@ class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
     });
 
     try {
-      final testRef = FirebaseFirestore.instance.collection('diagnostic').doc('test_doc');
+      final testRef = FirebaseFirestore.instance
+          .collection('diagnostic')
+          .doc('test_doc');
       final snapshot = await testRef.get();
-      
+
       setState(() {
-         if (snapshot.exists) {
-           _status = 'Read SUCCESS! Data: ${snapshot.data()}';
-         } else {
-           _status = 'Read SUCCESS! (Doc does not exist, but access allowed)';
-         }
+        if (snapshot.exists) {
+          _status = 'Read SUCCESS! Data: ${snapshot.data()}';
+        } else {
+          _status = 'Read SUCCESS! (Doc does not exist, but access allowed)';
+        }
         _statusColor = Colors.green;
       });
     } catch (e) {
@@ -100,26 +105,38 @@ class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text('App Configuration', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'App Configuration',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 10),
             Text('Project ID: $_projectId'),
             Text('Auth Status: $_authStatus'),
             const Divider(height: 30),
-            
-            const Text('Diagnostic Tests', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-             const SizedBox(height: 10),
+
+            const Text(
+              'Diagnostic Tests',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
             ElevatedButton.icon(
               icon: const Icon(Icons.edit),
               label: const Text('Test Write Permission'),
               onPressed: _testWrite,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 10),
             ElevatedButton.icon(
               icon: const Icon(Icons.visibility),
               label: const Text('Test Read Permission'),
               onPressed: _testRead,
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
             ),
             const SizedBox(height: 20),
             Container(
@@ -127,7 +144,10 @@ class _FirebaseDiagnosticScreenState extends State<FirebaseDiagnosticScreen> {
               color: _statusColor.withOpacity(0.1),
               child: Text(
                 'Result: $_status',
-                style: TextStyle(color: _statusColor, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: _statusColor,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ],

@@ -13,7 +13,8 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderStateMixin {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -25,7 +26,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
       vsync: this,
     );
     _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
-    
+
     _controller.forward();
     _navigateNext();
   }
@@ -47,11 +48,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
 
     // If user is already logged in (firebase auth), wait for auth service to initialize
     // The AuthWrapper in main.dart usually handles this, but since we are handling splash manually:
-    
+
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
-        builder: (context) => isFirstRun 
-            ? const OnboardingScreen() 
+        builder: (context) => isFirstRun
+            ? const OnboardingScreen()
             : const AuthWrapper(), // Triggers the AuthWrapper logic check
       ),
     );

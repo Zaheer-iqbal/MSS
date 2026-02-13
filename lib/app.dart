@@ -23,9 +23,7 @@ class MyApp extends StatelessWidget {
     final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthService()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthService())],
       child: MaterialApp(
         title: 'MSS School',
         themeMode: themeProvider.themeMode,
@@ -38,10 +36,7 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        supportedLocales: const [
-          Locale('en'),
-          Locale('ur'),
-        ],
+        supportedLocales: const [Locale('en'), Locale('ur')],
         home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
       ),
@@ -77,10 +72,10 @@ class AuthWrapper extends StatelessWidget {
         return const TeacherMainScreen();
       case 'student':
         if (authService.currentStudent != null) {
-           return StudentMainScreen(student: authService.currentStudent!);
+          return StudentMainScreen(student: authService.currentStudent!);
         }
         // Fallback if student data is missing but role is student (shouldn't happen ideally)
-        return const RoleSelectionScreen(); 
+        return const RoleSelectionScreen();
       case 'head_teacher':
         return const HeadTeacherMainScreen();
       case 'parent':

@@ -38,22 +38,25 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _sendMessage() async {
-    if (_messageController.text.trim().isEmpty || _currentUserId == null) return;
-    
+    if (_messageController.text.trim().isEmpty || _currentUserId == null)
+      return;
+
     final message = _messageController.text.trim();
     _messageController.clear();
 
     try {
       await _chatService.sendMessage(
-        _currentUserId!, 
-        widget.otherUserId, 
-        message, 
-        senderRole: widget.currentUserRole
+        _currentUserId!,
+        widget.otherUserId,
+        message,
+        senderRole: widget.currentUserRole,
       );
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
       }
     }
   }
@@ -70,7 +73,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    if (_currentUserId == null) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (_currentUserId == null)
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -81,21 +85,39 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: (widget.otherUserImage.isNotEmpty && widget.otherUserImage.startsWith('http')) 
-                  ? NetworkImage(widget.otherUserImage) 
+              backgroundImage:
+                  (widget.otherUserImage.isNotEmpty &&
+                      widget.otherUserImage.startsWith('http'))
+                  ? NetworkImage(widget.otherUserImage)
                   : null,
-              child: widget.otherUserImage.isEmpty 
-                  ? Text(widget.otherUserName[0]) 
-                  : (!widget.otherUserImage.startsWith('http') 
-                      ? ClipOval(child: Image.memory(base64Decode(widget.otherUserImage), fit: BoxFit.cover, width: 40, height: 40)) 
-                      : null),
+              child: widget.otherUserImage.isEmpty
+                  ? Text(widget.otherUserName[0])
+                  : (!widget.otherUserImage.startsWith('http')
+                        ? ClipOval(
+                            child: Image.memory(
+                              base64Decode(widget.otherUserImage),
+                              fit: BoxFit.cover,
+                              width: 40,
+                              height: 40,
+                            ),
+                          )
+                        : null),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.otherUserName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                const Text('Online', style: TextStyle(fontSize: 12, color: Colors.green)),
+                Text(
+                  widget.otherUserName,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const Text(
+                  'Online',
+                  style: TextStyle(fontSize: 12, color: Colors.green),
+                ),
               ],
             ),
           ],
@@ -105,15 +127,22 @@ class _ChatScreenState extends State<ChatScreen> {
         children: [
           Expanded(
             child: StreamBuilder<List<MessageModel>>(
-              stream: _chatService.getMessages(_currentUserId!, widget.otherUserId),
+              stream: _chatService.getMessages(
+                _currentUserId!,
+                widget.otherUserId,
+              ),
               builder: (context, snapshot) {
-                if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
-                if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
+                if (snapshot.hasError)
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                if (!snapshot.hasData)
+                  return const Center(child: CircularProgressIndicator());
 
                 final messages = snapshot.data!;
-                
+
                 // Auto scroll on new message
-               WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => _scrollToBottom(),
+                );
 
                 return ListView.builder(
                   controller: _scrollController,
@@ -157,17 +186,21 @@ class _ChatScreenState extends State<ChatScreen> {
           ],
         ),
         child: Column(
-          crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+          crossAxisAlignment: isMe
+              ? CrossAxisAlignment.end
+              : CrossAxisAlignment.start,
           children: [
             if (!isMe && message.senderRole != null) ...[
               Text(
-                message.senderRole == 'head_teacher' 
-                  ? 'Head Teacher' 
-                  : (message.senderRole == 'parent' ? 'Parent' : 'Teacher'),
+                message.senderRole == 'head_teacher'
+                    ? 'Head Teacher'
+                    : (message.senderRole == 'parent' ? 'Parent' : 'Teacher'),
                 style: TextStyle(
-                  color: message.senderRole == 'head_teacher' 
-                    ? AppColors.headTeacherRole 
-                    : (message.senderRole == 'parent' ? AppColors.parentRole : AppColors.teacherRole),
+                  color: message.senderRole == 'head_teacher'
+                      ? AppColors.headTeacherRole
+                      : (message.senderRole == 'parent'
+                            ? AppColors.parentRole
+                            : AppColors.teacherRole),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
@@ -176,12 +209,18 @@ class _ChatScreenState extends State<ChatScreen> {
             ],
             Text(
               message.message,
-              style: TextStyle(color: isMe ? Colors.white : AppColors.textPrimary, fontSize: 16),
+              style: TextStyle(
+                color: isMe ? Colors.white : AppColors.textPrimary,
+                fontSize: 16,
+              ),
             ),
             const SizedBox(height: 4),
             Text(
               '${message.timestamp.hour}:${message.timestamp.minute.toString().padLeft(2, '0')}',
-              style: TextStyle(color: isMe ? Colors.white70 : AppColors.textSecondary, fontSize: 10),
+              style: TextStyle(
+                color: isMe ? Colors.white70 : AppColors.textSecondary,
+                fontSize: 10,
+              ),
             ),
           ],
         ),
@@ -200,10 +239,16 @@ class _ChatScreenState extends State<ChatScreen> {
               controller: _messageController,
               decoration: InputDecoration(
                 hintText: 'Type a message...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(24), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
                 filled: true,
                 fillColor: AppColors.background,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 10,
+                ),
               ),
             ),
           ),

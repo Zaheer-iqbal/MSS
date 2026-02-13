@@ -29,7 +29,7 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     if (_formKey.currentState!.validate()) {
       setState(() => _isLoading = true);
-      
+
       final authService = Provider.of<AuthService>(context, listen: false);
 
       if (widget.isParent) {
@@ -42,14 +42,16 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           setState(() => _isLoading = false);
           if (student != null) {
-             // Navigate to Parent Main Screen with Tabs
-             Navigator.pushAndRemoveUntil(
-               context,
-               MaterialPageRoute(builder: (context) => ParentMainScreen(student: student)),
-               (route) => false,
-             );
+            // Navigate to Parent Main Screen with Tabs
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ParentMainScreen(student: student),
+              ),
+              (route) => false,
+            );
           } else {
-             ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Invalid Parent Credentials'),
                 backgroundColor: Colors.redAccent,
@@ -146,8 +148,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: 'Email Address',
                           icon: Icons.email_outlined,
                           keyboardType: TextInputType.emailAddress,
-                          validator: (value) => 
-                            (value == null || !value.contains('@')) ? 'Enter a valid email' : null,
+                          validator: (value) =>
+                              (value == null || !value.contains('@'))
+                              ? 'Enter a valid email'
+                              : null,
                         ),
                         const SizedBox(height: 20),
                         _buildTextField(
@@ -157,13 +161,19 @@ class _LoginScreenState extends State<LoginScreen> {
                           obscureText: _obscurePassword,
                           suffixIcon: IconButton(
                             icon: Icon(
-                              _obscurePassword ? Icons.visibility_off : Icons.visibility,
+                              _obscurePassword
+                                  ? Icons.visibility_off
+                                  : Icons.visibility,
                               color: AppColors.textSecondary,
                             ),
-                            onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword,
+                            ),
                           ),
-                          validator: (value) => 
-                            (value == null || value.length < 6) ? 'Password too short' : null,
+                          validator: (value) =>
+                              (value == null || value.length < 6)
+                              ? 'Password too short'
+                              : null,
                         ),
                         const SizedBox(height: 32),
                         SizedBox(
@@ -180,7 +190,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               elevation: 2,
                             ),
                             child: _isLoading
-                                ? const CircularProgressIndicator(color: Colors.white)
+                                ? const CircularProgressIndicator(
+                                    color: Colors.white,
+                                  )
                                 : const Text(
                                     'LOGIN',
                                     style: TextStyle(
@@ -202,7 +214,10 @@ class _LoginScreenState extends State<LoginScreen> {
             top: 40,
             left: 16,
             child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new, color: AppColors.textPrimary),
+              icon: const Icon(
+                Icons.arrow_back_ios_new,
+                color: AppColors.textPrimary,
+              ),
               onPressed: () => Navigator.pop(context),
             ),
           ),
@@ -240,7 +255,10 @@ class _LoginScreenState extends State<LoginScreen> {
         style: const TextStyle(fontSize: 16, color: AppColors.textPrimary),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+          labelStyle: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 14,
+          ),
           prefixIcon: Icon(icon, color: AppColors.primary, size: 22),
           suffixIcon: suffixIcon,
           border: OutlineInputBorder(
@@ -249,7 +267,10 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
           filled: true,
           fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 20,
+            vertical: 16,
+          ),
         ),
       ),
     );

@@ -23,7 +23,10 @@ class TeacherDismissalService {
     final dateStr = "${now.year}-${now.month}-${now.day}";
     final docId = "${teacherId}_$dateStr";
 
-    final doc = await _firestore.collection('teacher_dismissed_sessions').doc(docId).get();
+    final doc = await _firestore
+        .collection('teacher_dismissed_sessions')
+        .doc(docId)
+        .get();
     if (doc.exists) {
       final data = doc.data();
       if (data != null && data['dismissedKeys'] != null) {

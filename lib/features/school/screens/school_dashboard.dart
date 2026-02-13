@@ -104,7 +104,9 @@ class SchoolDashboard extends StatelessWidget {
                         color: AppColors.schoolRole,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const StudentListScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const StudentListScreen(),
+                          ),
                         ),
                       ),
                       ActionIcon(
@@ -119,7 +121,9 @@ class SchoolDashboard extends StatelessWidget {
                         color: AppColors.schoolRole,
                         onTap: () => Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const StaffListScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const StaffListScreen(),
+                          ),
                         ),
                       ),
                       ActionIcon(

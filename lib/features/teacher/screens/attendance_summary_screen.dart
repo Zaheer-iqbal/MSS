@@ -14,19 +14,15 @@ class AttendanceSummaryScreen extends StatefulWidget {
   });
 
   @override
-  State<AttendanceSummaryScreen> createState() => _AttendanceSummaryScreenState();
+  State<AttendanceSummaryScreen> createState() =>
+      _AttendanceSummaryScreenState();
 }
 
 class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
   final AttendanceService _attendanceService = AttendanceService();
   DateTime _selectedDate = DateTime.now();
-  
-  Map<String, int> _stats = {
-    'present': 0,
-    'absent': 0,
-    'late': 0,
-    'total': 0,
-  };
+
+  Map<String, int> _stats = {'present': 0, 'absent': 0, 'late': 0, 'total': 0};
   bool _isLoading = true;
 
   @override
@@ -38,9 +34,13 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
   Future<void> _fetchAttendance() async {
     setState(() => _isLoading = true);
     try {
-      final compositeClassId = "${widget.classId}_${widget.section}".toLowerCase();
-      final records = await _attendanceService.getClassAttendance(compositeClassId, _selectedDate);
-      
+      final compositeClassId = "${widget.classId}_${widget.section}"
+          .toLowerCase();
+      final records = await _attendanceService.getClassAttendance(
+        compositeClassId,
+        _selectedDate,
+      );
+
       int present = 0;
       int absent = 0;
       int late = 0;
@@ -48,8 +48,10 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
       for (var record in records) {
         if (record.status == 'present') {
           present++;
-        } else if (record.status == 'absent') absent++;
-        else if (record.status == 'late') late++;
+        } else if (record.status == 'absent')
+          absent++;
+        else if (record.status == 'late')
+          late++;
       }
 
       setState(() {
@@ -64,7 +66,9 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -115,7 +119,9 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
                     decoration: BoxDecoration(
                       color: Colors.green.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.green.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -124,7 +130,10 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
                         const Expanded(
                           child: Text(
                             "Attendance for today has been submitted.",
-                            style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
@@ -146,7 +155,11 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
         const SizedBox(height: 8),
         const Text(
           "Today's Overview",
-          style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
         ),
       ],
     );
@@ -156,10 +169,10 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
     final total = _stats['total']?.toDouble() ?? 1.0; // Avoid divide by zero
     final present = _stats['present']?.toDouble() ?? 0.0;
     final absent = _stats['absent']?.toDouble() ?? 0.0;
-    
+
     // Calculate percentages for the painter
     // If total is 0, we show a grey circle
-    
+
     return Container(
       width: 250,
       height: 250,
@@ -186,7 +199,9 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                total == 0 ? "0" : "${(present / total * 100).toStringAsFixed(0)}%",
+                total == 0
+                    ? "0"
+                    : "${(present / total * 100).toStringAsFixed(0)}%",
                 style: const TextStyle(
                   fontSize: 48,
                   fontWeight: FontWeight.bold,
@@ -230,13 +245,20 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
           ),
           child: Text(
             count,
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: color),
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ),
         const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -283,7 +305,13 @@ class AttendanceChartPainter extends CustomPainter {
     if (present > 0) {
       final sweepAngle = (present / total) * 2 * pi;
       paint.color = Colors.green;
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false, paint);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
 
@@ -291,17 +319,23 @@ class AttendanceChartPainter extends CustomPainter {
     if (absent > 0) {
       final sweepAngle = (absent / total) * 2 * pi;
       paint.color = Colors.red;
-      canvas.drawArc(Rect.fromCircle(center: center, radius: radius), startAngle, sweepAngle, false, paint);
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
       startAngle += sweepAngle;
     }
-    
-    // Draw Late/Others implicitly as empty or we could add another segment, 
+
+    // Draw Late/Others implicitly as empty or we could add another segment,
     // but the request focused on basic attendance.
-    // For visual completeness, let's just leave the rest as the background circle colour 
-    // or if we wanted to be precise, we'd draw 'Late' too. 
+    // For visual completeness, let's just leave the rest as the background circle colour
+    // or if we wanted to be precise, we'd draw 'Late' too.
     // Let's add Late just in case the data has it.
-    
-    // Note: The background circle already covers the "remaining" space, 
+
+    // Note: The background circle already covers the "remaining" space,
     // but drawing explicitly is better for overlapping segments if needed.
   }
 

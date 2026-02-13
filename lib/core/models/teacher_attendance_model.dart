@@ -34,7 +34,8 @@ class TeacherAttendanceModel {
       teacherName: map['teacherName'] ?? '',
       date: (map['date'] as Timestamp).toDate(),
       status: map['status'] ?? 'Absent',
-      timestamp: (map['timestamp'] as Timestamp? ?? map['date'] as Timestamp).toDate(),
+      timestamp: (map['timestamp'] as Timestamp? ?? map['date'] as Timestamp)
+          .toDate(),
     );
   }
 }

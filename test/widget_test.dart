@@ -12,9 +12,9 @@ void main() {
     expect(find.text('1'), findsNothing);
 
     // Tap the '+' icon and trigger a frame.
-    find.byIcon(Icons.add).evaluate().isNotEmpty 
-      ? await tester.tap(find.byIcon(Icons.add)) 
-      : null;
+    find.byIcon(Icons.add).evaluate().isNotEmpty
+        ? await tester.tap(find.byIcon(Icons.add))
+        : null;
     await tester.pump();
 
     // Verify that our counter has incremented.

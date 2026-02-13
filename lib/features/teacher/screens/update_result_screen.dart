@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
 import '../../student/services/student_api.dart';
+import '../../../core/services/notification_service.dart';
 
 class UpdateResultScreen extends StatefulWidget {
   final StudentModel student;
@@ -34,7 +35,7 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
     super.initState();
     _selectedCategory = widget.initialCategory;
     _remarksController = TextEditingController(text: widget.student.remarks);
-    
+
     // Initialize marks from student object
     _quizMarks = Map.from(widget.student.quizMarks);
     _assignmentMarks = Map.from(widget.student.assignmentMarks);
@@ -44,11 +45,16 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
 
   Map<String, dynamic> get _currentMarks {
     switch (_selectedCategory) {
-      case 'Quizzes': return _quizMarks;
-      case 'Assignments': return _assignmentMarks;
-      case 'Mid-term': return _midTermMarks;
-      case 'Final-term': return _finalTermMarks;
-      default: return {};
+      case 'Quizzes':
+        return _quizMarks;
+      case 'Assignments':
+        return _assignmentMarks;
+      case 'Mid-term':
+        return _midTermMarks;
+      case 'Final-term':
+        return _finalTermMarks;
+      default:
+        return {};
     }
   }
 
@@ -71,10 +77,25 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
       );
 
       await _studentApi.updateStudent(updatedStudent);
-      
+
+      // Send notification to Parent
+      await NotificationService().notifyParent(
+        studentId: widget.student.id,
+        title: 'Academic Update: $_selectedCategory',
+        body: 'New marks have been uploaded for ${widget.student.name}. Please check the Parent Dashboard.',
+        data: {
+          'type': 'marks',
+          'category': _selectedCategory,
+          'studentId': widget.student.id,
+        },
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Results published successfully!'), backgroundColor: Colors.green),
+          const SnackBar(
+            content: Text('Results published successfully!'),
+            backgroundColor: Colors.green,
+          ),
         );
         Navigator.pop(context);
       }
@@ -94,8 +115,17 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
       appBar: AppBar(
-        leading: BackButton(color: Colors.blue, onPressed: () => Navigator.pop(context)),
-        title: const Text('Update Result', style: TextStyle(color: Color(0xFF1A1C1E), fontWeight: FontWeight.bold)),
+        leading: BackButton(
+          color: Colors.blue,
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: const Text(
+          'Update Result',
+          style: TextStyle(
+            color: Color(0xFF1A1C1E),
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
@@ -107,30 +137,59 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
           children: [
             _buildStudentInfo(),
             const SizedBox(height: 24),
-            const Text('SELECT EXAM / TERM', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary, letterSpacing: 1.1)),
+            const Text(
+              'SELECT EXAM / TERM',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.1,
+              ),
+            ),
             const SizedBox(height: 8),
             _buildCategorySelector(),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('SUBJECT WISE PERFORMANCE', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary, letterSpacing: 1.1)),
+                const Text(
+                  'SUBJECT WISE PERFORMANCE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textSecondary,
+                    letterSpacing: 1.1,
+                  ),
+                ),
                 _buildAddSubjectButton(),
               ],
             ),
             const SizedBox(height: 12),
             _buildSubjectList(),
+            const SizedBox(height: 16),
+            _buildGrandTotalSummary(),
             const SizedBox(height: 24),
-            const Text('TEACHER REMARKS', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary, letterSpacing: 1.1)),
+            const Text(
+              'TEACHER REMARKS',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textSecondary,
+                letterSpacing: 1.1,
+              ),
+            ),
             const SizedBox(height: 8),
             _buildRemarksSection(),
             const SizedBox(height: 32),
             _buildSaveButton(),
             const SizedBox(height: 12),
             const Center(
-              child: Text('Publishing will send an instant notification to parents', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+              child: Text(
+                'Publishing will send an instant notification to parents',
+                style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+              ),
             ),
-             const SizedBox(height: 40),
+            const SizedBox(height: 40),
           ],
         ),
       ),
@@ -143,31 +202,67 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 30,
-            backgroundImage: widget.student.imageUrl.isNotEmpty ? NetworkImage(widget.student.imageUrl) : null,
-            child: widget.student.imageUrl.isEmpty ? Text(widget.student.name[0]) : null,
+            backgroundImage: widget.student.imageUrl.isNotEmpty
+                ? NetworkImage(widget.student.imageUrl)
+                : null,
+            child: widget.student.imageUrl.isEmpty
+                ? Text(widget.student.name[0])
+                : null,
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(widget.student.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF1A1C1E))),
+                Text(
+                  widget.student.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1C1E),
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Row(
                   children: [
-                    const Icon(Icons.badge, size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.badge,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
-                    Text('#${widget.student.rollNo}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                    Text(
+                      '#${widget.student.rollNo}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                     const Icon(Icons.school, size: 14, color: AppColors.textSecondary),
+                    const Icon(
+                      Icons.school,
+                      size: 14,
+                      color: AppColors.textSecondary,
+                    ),
                     const SizedBox(width: 4),
-                    Text('Class ${widget.student.classId}-${widget.student.section}', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                    Text(
+                      'Class ${widget.student.classId}-${widget.student.section}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -192,7 +287,9 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
           isExpanded: true,
           value: _selectedCategory,
           icon: const Icon(Icons.expand_more, color: AppColors.textSecondary),
-          items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          items: categories
+              .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+              .toList(),
           onChanged: (v) => setState(() => _selectedCategory = v!),
         ),
       ),
@@ -201,18 +298,25 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
 
   Widget _buildSubjectList() {
     if (_currentMarks.isEmpty) {
-       return Center(
-         child: Padding(
-           padding: const EdgeInsets.symmetric(vertical: 40),
-           child: Column(
-             children: [
-               Icon(Icons.description_outlined, size: 48, color: AppColors.textSecondary.withValues(alpha: 0.3)),
-               const SizedBox(height: 12),
-               const Text('No subjects added yet', style: TextStyle(color: AppColors.textSecondary)),
-             ],
-           ),
-         ),
-       );
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 40),
+          child: Column(
+            children: [
+              Icon(
+                Icons.description_outlined,
+                size: 48,
+                color: AppColors.textSecondary.withValues(alpha: 0.3),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'No subjects added yet',
+                style: TextStyle(color: AppColors.textSecondary),
+              ),
+            ],
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -245,7 +349,12 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10)],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 10,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -253,19 +362,41 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(subject, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              Text(
+                subject,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
               if (isPass != null)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: isPass ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                    color: isPass
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Row(
                     children: [
-                      Icon(isPass ? Icons.check_circle : Icons.error, size: 12, color: isPass ? Colors.green : Colors.red),
+                      Icon(
+                        isPass ? Icons.check_circle : Icons.error,
+                        size: 12,
+                        color: isPass ? Colors.green : Colors.red,
+                      ),
                       const SizedBox(width: 4),
-                      Text(isPass ? 'PASS' : 'FAIL', style: TextStyle(color: isPass ? Colors.green : Colors.red, fontWeight: FontWeight.bold, fontSize: 10)),
+                      Text(
+                        isPass ? 'PASS' : 'FAIL',
+                        style: TextStyle(
+                          color: isPass ? Colors.green : Colors.red,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 10,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -275,14 +406,18 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
           Row(
             children: [
               _buildMarkInputSection('OBTAINED', value.split('/').first, (v) {
-                 final total = value.contains('/') ? value.split('/')[1] : '100';
-                 _updateCurrentMark(subject, '$v/$total');
+                final total = value.contains('/') ? value.split('/')[1] : '100';
+                _updateCurrentMark(subject, '$v/$total');
               }),
               const SizedBox(width: 16),
-              _buildMarkInputSection('TOTAL', value.contains('/') ? value.split('/')[1] : '100', (v) {
-                 final obtained = value.split('/').first;
-                 _updateCurrentMark(subject, '$obtained/$v');
-              }),
+              _buildMarkInputSection(
+                'TOTAL',
+                value.contains('/') ? value.split('/')[1] : '100',
+                (v) {
+                  final obtained = value.split('/').first;
+                  _updateCurrentMark(subject, '$obtained/$v');
+                },
+              ),
             ],
           ),
         ],
@@ -290,12 +425,23 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
     );
   }
 
-  Widget _buildMarkInputSection(String label, String value, Function(String) onChanged) {
+  Widget _buildMarkInputSection(
+    String label,
+    String value,
+    Function(String) onChanged,
+  ) {
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.bold)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 10,
+              color: AppColors.textSecondary,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
           const SizedBox(height: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -305,11 +451,19 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
               border: Border.all(color: const Color(0xFFE1E3E8)),
             ),
             child: TextField(
-               onChanged: onChanged,
-               controller: TextEditingController(text: value)..selection = TextSelection.collapsed(offset: value.length),
-               keyboardType: TextInputType.number,
-               style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blue, fontSize: 18),
-               decoration: const InputDecoration(border: InputBorder.none, isDense: true),
+              onChanged: onChanged,
+              controller: TextEditingController(text: value)
+                ..selection = TextSelection.collapsed(offset: value.length),
+              keyboardType: TextInputType.number,
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue,
+                fontSize: 18,
+              ),
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                isDense: true,
+              ),
             ),
           ),
         ],
@@ -344,14 +498,24 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
       height: 56,
       child: ElevatedButton.icon(
         onPressed: _isLoading ? null : _saveResults,
-        icon: _isLoading ? const SizedBox.shrink() : const Icon(Icons.publish, size: 20),
-        label: _isLoading 
-          ? const CircularProgressIndicator(color: Colors.white)
-          : const Text('Save & Publish Results', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.1)),
+        icon: _isLoading
+            ? const SizedBox.shrink()
+            : const Icon(Icons.publish, size: 20),
+        label: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text(
+                'Save & Publish Results',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.1,
+                ),
+              ),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.blue,
           foregroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           elevation: 0,
         ),
       ),
@@ -362,7 +526,10 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
     return TextButton.icon(
       onPressed: _showAddSubjectDialog,
       icon: const Icon(Icons.add, size: 16),
-      label: const Text('Add Subject', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      label: const Text(
+        'Add Subject',
+        style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+      ),
       style: TextButton.styleFrom(foregroundColor: Colors.blue),
     );
   }
@@ -379,7 +546,10 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
           autofocus: true,
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () {
               if (controller.text.isNotEmpty) {
@@ -388,6 +558,93 @@ class _UpdateResultScreenState extends State<UpdateResultScreen> {
               }
             },
             child: const Text('Add'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGrandTotalSummary() {
+    if (_currentMarks.isEmpty) return const SizedBox.shrink();
+
+    double totalObtained = 0;
+    double totalMax = 0;
+
+    _currentMarks.forEach((_, value) {
+      try {
+        final parts = value.toString().split('/');
+        if (parts.length == 2) {
+          totalObtained += double.parse(parts[0]);
+          totalMax += double.parse(parts[1]);
+        } else {
+          totalObtained += double.parse(value.toString());
+          totalMax += 100;
+        }
+      } catch (_) {}
+    });
+
+    final percentage = totalMax > 0 ? (totalObtained / totalMax) * 100 : 0.0;
+    final isPass = percentage >= 40;
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Grand Total',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              const SizedBox(height: 4),
+              _buildStatusBadgeUi(isPass),
+            ],
+          ),
+          Text(
+            '${totalObtained.toStringAsFixed(0)}/${totalMax.toStringAsFixed(0)}',
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 24,
+              color: Colors.blue,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadgeUi(bool isPass) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: isPass
+            ? Colors.green.withValues(alpha: 0.1)
+            : Colors.red.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isPass ? Icons.check_circle : Icons.error,
+            size: 10,
+            color: isPass ? Colors.green : Colors.red,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            isPass ? 'PASS' : 'FAIL',
+            style: TextStyle(
+              color: isPass ? Colors.green : Colors.red,
+              fontWeight: FontWeight.bold,
+              fontSize: 10,
+            ),
           ),
         ],
       ),

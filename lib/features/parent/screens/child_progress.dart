@@ -43,9 +43,16 @@ class ChildProgress extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.calendar_today_outlined, size: 64, color: AppColors.textSecondary),
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    size: 64,
+                    color: AppColors.textSecondary,
+                  ),
                   SizedBox(height: 16),
-                  Text('No attendance records found', style: TextStyle(color: AppColors.textSecondary)),
+                  Text(
+                    'No attendance records found',
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
                 ],
               ),
             );
@@ -78,7 +85,10 @@ class ChildProgress extends StatelessWidget {
                         color: _getStatusColor(record.status).withOpacity(0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(_getStatusIcon(record.status), color: _getStatusColor(record.status)),
+                      child: Icon(
+                        _getStatusIcon(record.status),
+                        color: _getStatusColor(record.status),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -94,7 +104,10 @@ class ChildProgress extends StatelessWidget {
                           ),
                           Text(
                             "${record.date.day}/${record.date.month}/${record.date.year}",
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                            style: const TextStyle(
+                              color: AppColors.textSecondary,
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -111,19 +124,27 @@ class ChildProgress extends StatelessWidget {
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
-      case 'present': return Colors.green;
-      case 'absent': return Colors.red;
-      case 'late': return Colors.orange;
-      default: return Colors.grey;
+      case 'present':
+        return Colors.green;
+      case 'absent':
+        return Colors.red;
+      case 'late':
+        return Colors.orange;
+      default:
+        return Colors.grey;
     }
   }
 
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
-      case 'present': return Icons.check_circle_outline;
-      case 'absent': return Icons.cancel_outlined;
-      case 'late': return Icons.access_time;
-      default: return Icons.help_outline;
+      case 'present':
+        return Icons.check_circle_outline;
+      case 'absent':
+        return Icons.cancel_outlined;
+      case 'late':
+        return Icons.access_time;
+      default:
+        return Icons.help_outline;
     }
   }
 }

@@ -55,9 +55,18 @@ class _StudentMainScreenState extends State<StudentMainScreen> {
           showUnselectedLabels: true,
           elevation: 0,
           items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_filled), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.calendar_today), label: 'Attendance'),
-            BottomNavigationBarItem(icon: Icon(Icons.assignment), label: 'Marks'),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_filled),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today),
+              label: 'Attendance',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.assignment),
+              label: 'Marks',
+            ),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
         ),
