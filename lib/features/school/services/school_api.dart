@@ -1,10 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../../core/models/student_model.dart';
 
 class SchoolApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Stream<int> getStudentCount() {
     return _firestore.collection('students').snapshots().map((snapshot) => snapshot.size);
+  }
+
+  Stream<List<StudentModel>> getAllStudents() {
+    return _firestore.collection('students').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) => StudentModel.fromMap(doc.data(), doc.id)).toList();
+    });
   }
 
   Stream<int> getTeacherCount() {

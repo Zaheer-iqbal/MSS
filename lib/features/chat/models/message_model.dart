@@ -5,6 +5,7 @@ class MessageModel {
   final String message;
   final DateTime timestamp;
   final bool isRead;
+  final String? senderRole; // Add this field
 
   MessageModel({
     required this.id,
@@ -13,6 +14,7 @@ class MessageModel {
     required this.message,
     required this.timestamp,
     this.isRead = false,
+    this.senderRole, // Optional for backward compatibility
   });
 
   Map<String, dynamic> toMap() {
@@ -22,6 +24,7 @@ class MessageModel {
       'message': message,
       'timestamp': timestamp.toIso8601String(),
       'isRead': isRead,
+      'senderRole': senderRole,
     };
   }
 
@@ -33,6 +36,7 @@ class MessageModel {
       message: map['message'] ?? '',
       timestamp: DateTime.parse(map['timestamp']),
       isRead: map['isRead'] ?? false,
+      senderRole: map['senderRole'],
     );
   }
 }

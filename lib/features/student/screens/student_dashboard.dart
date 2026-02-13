@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/student_model.dart';
-import '../../../../widgets/dashboard_widgets.dart';
 
 class StudentDashboard extends StatelessWidget {
   final StudentModel student;

@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../models/message_model.dart';
-import '../../../../core/models/user_model.dart';
 
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,7 +13,7 @@ class ChatService {
   }
 
   // Send Message
-  Future<void> sendMessage(String senderId, String receiverId, String message) async {
+  Future<void> sendMessage(String senderId, String receiverId, String message, {String? senderRole}) async {
     try {
       final String chatId = _getChatId(senderId, receiverId);
       final DateTime timestamp = DateTime.now();
@@ -25,6 +24,7 @@ class ChatService {
         receiverId: receiverId,
         message: message,
         timestamp: timestamp,
+        senderRole: senderRole,
       );
 
       // 1. Add to main messages collection
@@ -103,6 +103,16 @@ class ChatService {
               chatData['otherUserName'] = userDoc['name'] ?? 'Unknown User';
               chatData['otherUserImage'] = userDoc['imageUrl'] ?? '';
               chats.add(chatData);
+            } else {
+              // Fallback for Parents who don't have a 'users' record yet
+              DocumentSnapshot studentDoc = await _firestore.collection('students').doc(otherUserId).get();
+              if (studentDoc.exists) {
+                chatData['otherUserName'] = studentDoc['fatherName'] != null 
+                    ? "${studentDoc['fatherName']} (Parent)" 
+                    : "Parent of ${studentDoc['name']}";
+                chatData['otherUserImage'] = ''; // Parents usually don't have image in students collection
+                chats.add(chatData);
+              }
             }
           }
           return chats;
@@ -119,13 +129,38 @@ class ChatService {
         .update({'unreadCount': 0});
   }
 
+  // Get Total Unread Count Stream
+  Stream<int> getTotalUnreadCount(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('my_chats')
+        .snapshots()
+        .map((snapshot) {
+          int total = 0;
+          for (var doc in snapshot.docs) {
+            total += (doc.data()['unreadCount'] ?? 0) as int;
+          }
+          return total;
+        });
+  }
+
   // Helper to find user ID by email
   Future<String?> getUserIdByEmail(String email) async {
     if (email.isEmpty) return null;
+    
+    // 1. Check primary 'users' collection
     final snapshot = await _firestore.collection('users').where('email', isEqualTo: email).limit(1).get();
     if (snapshot.docs.isNotEmpty) {
       return snapshot.docs.first.id;
     }
+    
+    // 2. Fallback: Check 'students' collection for parents (for older enrollments)
+    final parentSnapshot = await _firestore.collection('students').where('parentEmail', isEqualTo: email).limit(1).get();
+    if (parentSnapshot.docs.isNotEmpty) {
+      return parentSnapshot.docs.first.id;
+    }
+    
     return null;
   }
 }

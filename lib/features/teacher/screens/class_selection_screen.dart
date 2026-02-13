@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
-import 'attendance_summary_screen.dart';
 import 'marks_entry_screen.dart';
 import 'attendance_screen.dart';
 import 'student_list_screen.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import 'package:provider/provider.dart';
-import '../../parent/screens/parent_dashboard.dart';
+import '../../parent/screens/parent_main_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool isParent;
@@ -42,10 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           setState(() => _isLoading = false);
           if (student != null) {
-             // Navigate to Parent Dashboard
+             // Navigate to Parent Main Screen with Tabs
              Navigator.pushAndRemoveUntil(
                context,
-               MaterialPageRoute(builder: (context) => ParentDashboardScreen(student: student)),
+               MaterialPageRoute(builder: (context) => ParentMainScreen(student: student)),
                (route) => false,
              );
           } else {

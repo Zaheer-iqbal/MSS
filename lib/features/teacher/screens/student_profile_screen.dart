@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -12,6 +13,7 @@ import 'manage_student_screen.dart';
 import 'update_result_screen.dart';
 import '../../chat/screens/chat_screen.dart';
 import '../../chat/services/chat_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   final StudentModel student;
@@ -31,6 +33,78 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
     super.initState();
     final authService = Provider.of<AuthService>(context, listen: false);
     _userRole = authService.currentUser?.role;
+    _checkGuidance();
+  }
+
+  Future<void> _checkGuidance() async {
+    final prefs = await SharedPreferences.getInstance();
+    final hasSeen = prefs.getBool('has_seen_chat_guidance') ?? false;
+
+    if (!hasSeen && mounted) {
+      // Delay slightly to show after screen transition
+      Future.delayed(const Duration(seconds: 1), () => _showGuidanceDialog());
+      await prefs.setBool('has_seen_chat_guidance', true);
+    }
+  }
+
+  void _showGuidanceDialog() {
+    // Use MediaQuery to check screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmallScreen = screenWidth < 360;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.tips_and_updates, color: Colors.amber),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Connect with Parents', 
+                overflow: TextOverflow.visible,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'You can now chat directly with parents!\n\n'
+              'Look for the parent chat icon next to the student\'s name to start a conversation.',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            // Responsive layout: Column for small screens, Row for larger
+            ? _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat'),
+          Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                   _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat'),
+                ],
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Got it!', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGuidanceItem(IconData icon, Color color, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color),
+        const SizedBox(width: 8),
+        Text(text),
+      ],
+    );
   }
 
   // Removed unused _updateMarks helper as logic is moved to UpdateResultScreen
@@ -261,20 +335,10 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                       ),
                     ),
                     if (_userRole == 'teacher' || _userRole == 'head_teacher' || _userRole == 'school')
-                      Row(
-                        children: [
-                          _buildSmallChatAction(
-                            icon: Icons.message_outlined, 
-                            color: AppColors.primary, 
-                            onTap: () => _messageUser(context, student.email, student.name, 'Student'),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildSmallChatAction(
-                            icon: Icons.family_restroom_outlined, 
-                            color: Colors.orange, 
-                            onTap: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent'),
-                          ),
-                        ],
+                      _buildSmallChatAction(
+                        icon: Icons.family_restroom_outlined, 
+                        color: Colors.orange, 
+                        onTap: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent', student.phone),
                       ),
                   ],
                 ),
@@ -567,15 +631,32 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   }
 
   // Message Action Helper
-  void _messageUser(BuildContext context, String email, String name, String userType) async {
+  void _messageUser(BuildContext context, String email, String name, String userType, String phone) async {
+    if (email.isEmpty) {
+      if (context.mounted) {
+        // Fallback to SMS if email is missing
+        _showSMSFallbackDialog(context, name, phone, "Email not found for $userType.");
+      }
+      return;
+    }
+
     final chatService = ChatService();
     // Show loading
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Finding $userType account...'), duration: const Duration(seconds: 1)));
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Row(children: [
+        const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+        const SizedBox(width: 16), 
+        Text('Finding $userType account...')
+      ]), 
+      duration: const Duration(seconds: 2)
+    ));
     
-    final uid = await chatService.getUserIdByEmail(email);
+    // Attempt lookup with normalized email
+    final uid = await chatService.getUserIdByEmail(email.trim().toLowerCase());
     
     if (uid != null) {
       if (context.mounted) {
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -583,13 +664,76 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               otherUserId: uid,
               otherUserName: name,
               otherUserImage: '', // Can be fetched if needed
+              currentUserRole: _userRole,
             ),
           ),
         );
       }
     } else {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$userType account not found for email: $email')));
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        _showSMSFallbackDialog(context, name, phone, "The $userType account for \"$name\" has not been created yet.");
+      }
+    }
+  }
+
+  void _showSMSFallbackDialog(BuildContext context, String name, String phone, String reason) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Chat Not Available'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(reason),
+            const SizedBox(height: 16),
+            const Text('Would you like to send an SMS instead?'),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              _launchSMS(phone);
+            }, 
+            icon: const Icon(Icons.sms),
+            label: const Text('Send SMS'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _launchSMS(String phone) async {
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phone number not available')),
+      );
+      return;
+    }
+    
+    final Uri smsLaunchUri = Uri(
+      scheme: 'sms',
+      path: phone,
+    );
+
+    try {
+      if (await canLaunchUrl(smsLaunchUri)) {
+        await launchUrl(smsLaunchUri);
+      } else {
+        if (mounted) {
+           // Try launching without check on some Android versions
+           await launchUrl(smsLaunchUri);
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not launch SMS: $e')),
+        );
       }
     }
   }

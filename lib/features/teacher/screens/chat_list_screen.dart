@@ -116,6 +116,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         otherUserId: otherUserId,
                         otherUserName: otherUserName,
                         otherUserImage: otherUserImage,
+                        currentUserRole: Provider.of<AuthService>(context, listen: false).currentUser?.role,
                       ),
                     ),
                   );

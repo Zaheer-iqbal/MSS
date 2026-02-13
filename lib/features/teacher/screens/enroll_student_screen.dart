@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
@@ -26,6 +26,7 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
 
   // Controllers for Step 1: Personal
   final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   DateTime? _dob;
   String? _gender;
   File? _selectedImage;
@@ -78,6 +79,7 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _emailController.dispose();
     _rollNoController.dispose();
     _parentNameController.dispose();
     _relationshipController.dispose();
@@ -135,7 +137,7 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
         rollNo: _rollNoController.text.trim(),
         classId: _selectedClass!,
         section: _selectedSection ?? 'A',
-        email: '',
+        email: _emailController.text.trim(),
         parentEmail: _parentEmailController.text.trim(),
         parentPassword: _parentPasswordController.text.trim(),
         fatherName: _parentNameController.text.trim(),
@@ -151,7 +153,19 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
         updatedAt: DateTime.now(),
       );
 
-      await _studentApi.addStudent(student);
+      final studentId = await _studentApi.addStudent(student);
+
+      // 2. Also create a Parent record in 'users' collection so they are findable for chat
+      // We use studentId as the UID to match the Parent Login logic in AuthService
+      await FirebaseFirestore.instance.collection('users').doc(studentId).set({
+        'uid': studentId,
+        'email': _parentEmailController.text.trim(),
+        'name': '${_parentNameController.text.trim()} (Parent)',
+        'role': 'parent',
+        'createdAt': DateTime.now().toIso8601String(),
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+      });
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -174,6 +188,7 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
      setState(() {
        _currentStep = 0;
        _nameController.clear();
+       _emailController.clear();
        _rollNoController.clear();
        _parentNameController.clear();
        _phoneController.clear();
@@ -323,6 +338,8 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
         ),
         const SizedBox(height: 32),
         _buildInputField(label: 'Full Name', hint: 'e.g. John Doe', controller: _nameController),
+        const SizedBox(height: 20),
+        _buildInputField(label: 'Student Email', hint: 'student@school.com', controller: _emailController, icon: Icons.email_outlined),
         const SizedBox(height: 20),
         _buildDatePickerField(label: 'Date of Birth', value: _dob),
         const SizedBox(height: 20),

@@ -5,9 +5,10 @@ class StudentApi {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Add a new student
-  Future<void> addStudent(StudentModel student) async {
+  Future<String> addStudent(StudentModel student) async {
     try {
-      await _firestore.collection('students').add(student.toMap());
+      final docRef = await _firestore.collection('students').add(student.toMap());
+      return docRef.id;
     } catch (e) {
       rethrow;
     }

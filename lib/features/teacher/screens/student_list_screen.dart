@@ -5,7 +5,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/models/student_model.dart';
 import '../../../core/services/auth_service.dart';
 import '../../student/services/student_api.dart';
-import 'manage_student_screen.dart';
 import 'student_profile_screen.dart';
 
 class StudentListScreen extends StatefulWidget {
@@ -116,13 +115,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ManageStudentScreen())),
-        label: const Text('Enroll Student'),
-        icon: const Icon(Icons.person_add),
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-      ),
+      // floatingActionButton removed as per request
     );
   }
 

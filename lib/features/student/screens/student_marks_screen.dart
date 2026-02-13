@@ -160,7 +160,7 @@ class _MarksList extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                '$title',
+                title,
                 style: const TextStyle(color: AppColors.textSecondary),
               ),
             ],

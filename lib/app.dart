@@ -7,7 +7,7 @@ import '../features/auth/screens/role_selection_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/school/screens/school_dashboard.dart';
 import '../features/teacher/screens/teacher_main_screen.dart';
-import '../features/head_teacher/screens/head_dashboard.dart';
+import '../features/head_teacher/screens/head_teacher_main_screen.dart';
 import '../features/parent/screens/parent_dashboard.dart';
 import '../features/student/screens/student_main_screen.dart';
 
@@ -67,7 +67,7 @@ class AuthWrapper extends StatelessWidget {
         // Fallback if student data is missing but role is student (shouldn't happen ideally)
         return const RoleSelectionScreen(); 
       case 'head_teacher':
-        return const HeadDashboard();
+        return const HeadTeacherMainScreen();
       case 'parent':
         if (authService.currentStudent != null) {
           return ParentDashboardScreen(student: authService.currentStudent!);

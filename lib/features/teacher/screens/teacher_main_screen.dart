@@ -4,7 +4,6 @@ import '../../../core/constants/app_colors.dart';
 import '../../../core/providers/theme_provider.dart';
 import 'teacher_dashboard.dart';
 import 'student_list_screen.dart';
-import 'manage_student_screen.dart';
 import 'class_selection_screen.dart';
 import 'chat_list_screen.dart';
 import 'enroll_student_screen.dart';

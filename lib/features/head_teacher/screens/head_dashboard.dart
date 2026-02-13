@@ -6,6 +6,7 @@ import '../../../widgets/dashboard_widgets.dart';
 import '../../school/services/school_api.dart';
 import 'staff_list_screen.dart';
 import 'head_teacher_profile_screen.dart';
+import 'student_list_by_class_screen.dart';
 
 class HeadDashboard extends StatelessWidget {
   const HeadDashboard({super.key});
@@ -67,6 +68,12 @@ class HeadDashboard extends StatelessWidget {
                           value: '${snapshot.data ?? 0}',
                           icon: Icons.school,
                           color: Colors.indigo,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StudentListByClassScreen(),
+                            ),
+                          ),
                         ),
                       ),
                       StreamBuilder<int>(

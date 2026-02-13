@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../../core/models/attendance_model.dart';
 import '../../../core/services/attendance_service.dart';
-import 'attendance_screen.dart';
 
 class AttendanceSummaryScreen extends StatefulWidget {
   final String classId;
@@ -48,8 +46,9 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
       int late = 0;
 
       for (var record in records) {
-        if (record.status == 'present') present++;
-        else if (record.status == 'absent') absent++;
+        if (record.status == 'present') {
+          present++;
+        } else if (record.status == 'absent') absent++;
         else if (record.status == 'late') late++;
       }
 

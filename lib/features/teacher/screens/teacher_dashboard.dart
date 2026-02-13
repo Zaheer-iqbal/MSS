@@ -1,25 +1,20 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:collection/collection.dart';
-import 'package:mss/features/teacher/screens/enroll_student_screen.dart' show EnrollStudentScreen;
 import 'package:provider/provider.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/attendance_service.dart';
-import '../../../widgets/dashboard_widgets.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/providers/theme_provider.dart'; // Added this import
-import '../services/teacher_api.dart';
-import 'attendance_screen.dart';
-import 'student_list_screen.dart';
-import 'teacher_schedule_screen.dart';
+import '../../../../core/models/teacher_attendance_model.dart';
+import '../../../../core/services/teacher_attendance_service.dart';
+import '../../../../core/services/teacher_dismissal_service.dart';
 import 'teacher_profile_screen.dart';
-import 'manage_student_screen.dart';
 import 'class_selection_screen.dart';
-import '../../student/services/student_api.dart';
-import '../../../core/models/student_model.dart';
 
 class TeacherDashboard extends StatefulWidget {
   const TeacherDashboard({super.key});
@@ -30,18 +25,23 @@ class TeacherDashboard extends StatefulWidget {
 
 class _TeacherDashboardState extends State<TeacherDashboard> {
   final AttendanceService _attendanceService = AttendanceService();
+  final TeacherAttendanceService _teacherAttendanceService = TeacherAttendanceService();
+  final TeacherDismissalService _dismissalService = TeacherDismissalService();
   List<Map<String, dynamic>> _classStats = [];
   List<Map<String, dynamic>> _todaySchedule = [];
-  Set<String> _dismissedSessionKeys = {}; // To track deleted/dismissed red sessions
+  final Set<String> _dismissedSessionKeys = {}; // To track deleted/dismissed red sessions
   final PageController _pageController = PageController();
-  final PageController _schedulePageController = PageController(viewportFraction: 0.93);
+  final PageController _schedulePageController = PageController();
   int _currentPage = 0;
   int _currentSchedulePage = 0;
   bool _isLoading = true;
   String? _lastFetchDate; // To reset dismissals daily
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  Timer? _autoSlideTimer;
 
   UserModel? _currentUser;
+  bool _isAttendanceMarked = false;
+  String _attendanceStatus = '';
 
   @override
   void didChangeDependencies() {
@@ -73,6 +73,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   @override
   void dispose() {
     _userSubscription?.cancel();
+    _autoSlideTimer?.cancel();
     _pageController.dispose();
     _schedulePageController.dispose();
     super.dispose();
@@ -96,12 +97,14 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         final section = classInfo['section'] ?? '';
         if (classId.isNotEmpty && section.isNotEmpty) {
           String compositeId = "${classId}_$section".toLowerCase();
-          final records = await _attendanceService.getClassAttendance(compositeId, DateTime.now());
+          final records = await _attendanceService.getClassAttendance(
+              compositeId, DateTime.now());
           int present = 0;
           int absent = 0;
           for (var r in records) {
-            if (r.status == 'present') present++;
-            else if (r.status == 'absent') absent++;
+            if (r.status == 'present') {
+              present++;
+            } else if (r.status == 'absent') absent++;
           }
           final students = await FirebaseFirestore.instance
               .collection('students')
@@ -119,19 +122,30 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         }
       }
 
-      final days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      final days = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday'
+      ];
       final now = DateTime.now();
       final currentDay = days[now.weekday - 1];
       final dateStr = "${now.year}-${now.month}-${now.day}";
 
-      // Reset dismissals if it's a new day
+      // Reset/Fetch dismissals
       if (_lastFetchDate != dateStr) {
         _dismissedSessionKeys.clear();
+        final storedDismissals = await _dismissalService.getDismissedSessions(user.uid);
+        _dismissedSessionKeys.addAll(storedDismissals);
         _lastFetchDate = dateStr;
       }
-      
-      final rawSchedule = user.schedule.where((e) => e['day']?.toLowerCase() == currentDay.toLowerCase()).toList();
-      
+
+      final rawSchedule = user.schedule.where((e) =>
+      e['day']?.toLowerCase() == currentDay.toLowerCase()).toList();
+
       // Sort schedule by time
       rawSchedule.sort((a, b) {
         final timeA = _parseTime(a['time'] ?? '');
@@ -144,9 +158,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         final classId = session['classId'] ?? '';
         final section = session['section'] ?? '';
         String compositeId = "${classId}_$section".toLowerCase();
-        
-        final records = await _attendanceService.getClassAttendance(compositeId, now);
-        
+
+        final records = await _attendanceService.getClassAttendance(
+            compositeId, now);
+
         enrichedSchedule.add({
           ...session,
           'isMarked': records.isNotEmpty,
@@ -161,7 +176,22 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+
+      // Check Teacher Attendance
+      final today = DateTime.now();
+      final attendance = await _teacherAttendanceService.getAttendanceForDate(
+          user.uid, DateTime(today.year, today.month, today.day));
+      if (mounted) {
+        setState(() {
+          _isAttendanceMarked = attendance != null;
+          _attendanceStatus = attendance?.status ?? '';
+        });
+
+
+        _startAutoSlide();
+      }
+    }
+        catch (e) {
       print("Error fetching dashboard statistics: $e");
       if (mounted) setState(() => _isLoading = false);
     }
@@ -212,6 +242,172 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
   }
 
+  Future<void> _markTeacherAttendance(UserModel user, String status) async {
+    try {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      final attendance = TeacherAttendanceModel(
+        teacherId: user.uid, 
+        teacherName: user.name, 
+        date: today, 
+        status: status, 
+        timestamp: now
+      );
+
+      await _teacherAttendanceService.markAttendance(attendance);
+      
+      if (mounted) {
+        setState(() {
+          _isAttendanceMarked = true;
+          _attendanceStatus = status;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance marked successfully!'), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Widget _buildTeacherAttendanceCard(UserModel? user, bool isDark) {
+     if (user == null) return const SizedBox.shrink();
+
+     return Container(
+       padding: const EdgeInsets.all(20),
+       decoration: BoxDecoration(
+         color: isDark ? const Color(0xFF1E2130) : Colors.white,
+         borderRadius: BorderRadius.circular(24),
+         boxShadow: [
+           if (!isDark) BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5))
+         ],
+       ),
+       child: Column(
+         crossAxisAlignment: CrossAxisAlignment.start,
+         children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "My Attendance",
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : AppColors.textPrimary
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _isAttendanceMarked 
+                        ? (_attendanceStatus == 'present' ? Colors.green.withOpacity(0.1) : Colors.red.withOpacity(0.1))
+                        : Colors.orange.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                     _isAttendanceMarked 
+                        ? (_attendanceStatus == 'present' ? 'Present' : 'Absent')
+                        : 'Not Marked',
+                     style: TextStyle(
+                       color: _isAttendanceMarked 
+                          ? (_attendanceStatus == 'present' ? Colors.green : Colors.red)
+                          : Colors.orange, 
+                       fontWeight: FontWeight.bold, 
+                       fontSize: 12
+                     ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_isAttendanceMarked)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(
+                   color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withOpacity(0.05),
+                   borderRadius: BorderRadius.circular(16),
+                   border: Border.all(color: (_attendanceStatus == 'present' ? Colors.green : Colors.red).withOpacity(0.2)),
+                 ),
+                 child: Row(
+                   children: [
+                      Icon(
+                        _attendanceStatus == 'present' ? Icons.check_circle : Icons.cancel, 
+                        color: _attendanceStatus == 'present' ? Colors.green : Colors.red
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          "You have marked yourself as ${_attendanceStatus == 'present' ? 'Present' : 'Absent'} today.",
+                          style: TextStyle(
+                            color: isDark ? Colors.white70 : AppColors.textPrimary,
+                            fontWeight: FontWeight.w500
+                          ),
+                        ),
+                      ),
+                   ],
+                 ),
+              )
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _markTeacherAttendance(user, 'present'),
+                      icon: const Icon(Icons.check_circle_outline),
+                      label: const Text('Mark Present'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                   Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () => _markTeacherAttendance(user, 'absent'),
+                      icon: const Icon(Icons.cancel_outlined),
+                      label: const Text('Mark Absent'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+         ],
+       ),
+     );
+  }
+
+  void _startAutoSlide() {
+    _autoSlideTimer?.cancel();
+    _autoSlideTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (_classStats.isEmpty || !mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_currentPage < _classStats.length - 1) {
+        _currentPage++;
+      } else {
+        _currentPage = 0;
+      }
+      if (_pageController.hasClients) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final authService = Provider.of<AuthService>(context);
@@ -239,6 +435,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   const SizedBox(height: 30),
                   _buildDailyScheduleCard(user, textColor, subTextColor),
                   const SizedBox(height: 30),
+                  _buildTeacherAttendanceCard(user, isDark),
+                  const SizedBox(height: 30),
                   Text(
                     'Quick Actions',
                     style: TextStyle(
@@ -250,7 +448,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   const SizedBox(height: 16),
                   _buildQuickActionsGrid(context, isDark),
                   const SizedBox(height: 30),
-                  _buildPendingTasksSection(textColor, subTextColor, isDark),
+                  _buildClassCalendar(context, user, textColor, subTextColor, isDark),
                 ],
                 const SizedBox(height: 80), 
               ],
@@ -303,8 +501,15 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               },
               child: CircleAvatar(
                 radius: 20,
-                backgroundImage: user?.imageUrl != null ? NetworkImage(user!.imageUrl!) : null,
-                child: user?.imageUrl == null ? const Icon(Icons.person) : null,
+                backgroundColor: Colors.grey.withOpacity(0.2),
+                backgroundImage: user?.imageUrl != null && user!.imageUrl.isNotEmpty
+                    ? (user.imageUrl.startsWith('http')
+                        ? NetworkImage(user.imageUrl)
+                        : MemoryImage(base64Decode(user.imageUrl))) as ImageProvider
+                    : null,
+                child: (user?.imageUrl == null || user!.imageUrl.isEmpty) 
+                    ? const Icon(Icons.person) 
+                    : null,
               ),
             ),
           ],
@@ -501,7 +706,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     }
 
     final screenHeight = MediaQuery.of(context).size.height;
-    final cardHeight = math.max(225.0, screenHeight * 0.28); // Responsive height with minimum limit
+    final cardHeight = math.max(160.0, screenHeight * 0.22); // Reduced height
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -524,7 +729,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               ),
           ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12), // Reduced spacing
         SizedBox(
           height: cardHeight, // Responsive height
           child: PageView.builder(
@@ -534,7 +739,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
             itemCount: visibleSessions.length,
             itemBuilder: (context, index) {
               final session = visibleSessions[index];
-              // The first session that hasn't passed is 'UP NEXT'
               final upNextSession = visibleSessions.firstWhereOrNull((s) => !(s['hasPassed'] ?? false));
               final isUpNext = session == upNextSession;
               
@@ -543,7 +747,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           ),
         ),
         if (visibleSessions.length > 1) ...[
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: List.generate(
@@ -587,8 +791,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     final sessionKey = "${session['classId']}_${session['section']}_${session['time']}";
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 0, vertical: 4), // Full width (0 margin)
+      padding: const EdgeInsets.all(16), // Squeezed padding
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: isRed 
@@ -597,12 +801,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20), // Slightly smaller radius
         boxShadow: [
           BoxShadow(
             color: (isRed ? Colors.red : Colors.blue).withOpacity(0.3),
-            blurRadius: 15,
-            offset: const Offset(0, 8),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -611,16 +815,19 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           _buildScheduleDetails(session, isUpNext),
           if (isRed)
             Positioned(
-              top: 0,
+              bottom: 0,
               right: 0,
               child: IconButton(
-                onPressed: () {
+                onPressed: () async {
                   setState(() {
                     _dismissedSessionKeys.add(sessionKey);
                   });
+                  await _dismissalService.saveDismissedSession(_currentUser!.uid, sessionKey);
                 },
-                icon: const Icon(Icons.delete_outline, color: Colors.white, size: 24),
+                icon: const Icon(Icons.delete_outline, color: Colors.white, size: 20),
                 tooltip: 'Dismiss missed class',
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
               ),
             ),
         ],
@@ -632,91 +839,87 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Top Row: UpNext/Time (Left) -- Grade (Right)
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (isUpNext)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.25),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: Colors.white.withOpacity(0.1)),
-                ),
-                child: const Row(
-                  children: [
-                    Text('⚡ ', style: TextStyle(fontSize: 10)),
-                    Text('UP NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              )
-            else
-              const SizedBox.shrink(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.1)),
-              ),
-              child: Row(
-                children: [
-                  const Text('🕒 ', style: TextStyle(fontSize: 14)),
-                  Text(
-                    session['time'] ?? 'TBD',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
+            Row(
+              children: [
+                if (isUpNext) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.25),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.white.withOpacity(0.1)),
                     ),
+                    child: const Text('⚡ NEXT', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
                   ),
+                  const SizedBox(width: 8),
                 ],
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text('🕒 ', style: TextStyle(fontSize: 12)),
+                      Text(
+                        session['time'] ?? 'TBD',
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            // Grade moved to Top Right
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Grade ${session['classId']}-${session['section']}',
+                style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 16),
+        
+        const Spacer(),
+
+        // Middle: Subject
         Text(
           session['subject'] ?? 'No Subject',
-          maxLines: 2,
+          maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 26,
+            fontSize: 24, // Slightly smaller
             fontWeight: FontWeight.w900,
-            letterSpacing: -0.8,
+            letterSpacing: -0.5,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Grade ${session['classId']}-${session['section']}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: Colors.white.withOpacity(0.9),
-            fontSize: 18,
-            fontWeight: FontWeight.w500,
-          ),
+        
+        const SizedBox(height: 8),
+
+        // Bottom: Day (Moved Closer to Subject)
+        Row(
+          children: [
+            const Icon(Icons.calendar_today_rounded, color: Colors.white70, size: 14),
+            const SizedBox(width: 6),
+            Text(
+              '${session['day'] ?? 'Today'}',
+              style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w500),
+            ),
+          ],
         ),
-        const Spacer(),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.calendar_today_rounded, color: Colors.white, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                'Day: ${session['day'] ?? 'Today'} 📅',
-                style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
+        const SizedBox(height: 4), // Small bottom padding
       ],
     );
   }
@@ -740,10 +943,17 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         _buildDarkActionCard(
           context,
+          'Students',
+          Icons.people_outline,
+          Colors.orange,
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Student List'))),
+          isDark
+        ),
+        _buildDarkActionCard(
+          context,
           'Results',
           Icons.description_outlined,
           Colors.green,
-          // For now, let's open marks entry, user might want a specific results view later
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Exam'))),
           isDark
         ),
@@ -753,14 +963,6 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           Icons.assignment_outlined,
           Colors.purple,
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Assignment'))),
-          isDark
-        ),
-        _buildDarkActionCard(
-          context,
-          'Students',
-          Icons.people_outline,
-          Colors.orange,
-          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Student List'))),
           isDark
         ),
       ],
@@ -810,79 +1012,165 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 
-  Widget _buildPendingTasksSection(Color textColor, Color subTextColor, bool isDark) {
+  Widget _buildClassCalendar(BuildContext context, UserModel? user, Color textColor, Color subTextColor, bool isDark) {
+    if (user == null) return const SizedBox.shrink();
+
+    final now = DateTime.now();
+    final daysInMonth = _getDaysInMonth(now);
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final startingWeekday = firstDayOfMonth.weekday; // 1 = Mon, 7 = Sun
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-             Text(
-              'Pending Tasks',
-              style: TextStyle(
-                color: textColor,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text('2 New', style: TextStyle(color: Colors.blue, fontSize: 10, fontWeight: FontWeight.bold)),
-            ),
-          ],
+        Text(
+          'My Teaching Calendar',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
-        _buildTaskTile('Grade Submissions', '14 pending for Algebra II', Icons.error_outline, Colors.red, textColor, subTextColor, isDark),
-        const SizedBox(height: 12),
-        _buildTaskTile('Attendance Missing', '9B Homeroom • Yesterday', Icons.calendar_today, Colors.blue, textColor, subTextColor, isDark),
-        const SizedBox(height: 12),
-        _buildTaskTile('Staff Meeting', '2nd Floor • Principal\'s Office', Icons.groups, Colors.orange, textColor, subTextColor, isDark),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: isDark ? const Color(0xFF161822) : Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: isDark ? [] : [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Month Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "${_getMonthName(now.month)} ${now.year}",
+                    style: TextStyle(
+                      color: textColor,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Icon(Icons.calendar_month, color: AppColors.teacherRole),
+                ],
+              ),
+              const SizedBox(height: 20),
+              
+              // Days of Week Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((day) {
+                  return SizedBox(
+                    width: 30, // Fixed width for alignment
+                    child: Center(
+                      child: Text(
+                        day,
+                        style: TextStyle(
+                          color: subTextColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 12),
+              
+              // Calendar Grid
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                ),
+                itemCount: 42, // 6 rows * 7 days
+                itemBuilder: (context, index) {
+                  // Calculate date for this cell
+                  final dayOffset = index - (startingWeekday - 1);
+                  final cellDate = firstDayOfMonth.add(Duration(days: dayOffset));
+                  
+                  // Check if date is within current month
+                  final isCurrentMonth = cellDate.month == now.month;
+                  if (!isCurrentMonth) return const SizedBox.shrink();
+
+                  final isToday = cellDate.year == now.year && 
+                                 cellDate.month == now.month && 
+                                 cellDate.day == now.day;
+                  
+                  // Check if class is scheduled for this weekday
+                  final hasClass = _isClassScheduled(user, cellDate);
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: isToday 
+                          ? AppColors.teacherRole 
+                          : (hasClass ? AppColors.teacherRole.withOpacity(0.1) : Colors.transparent),
+                      shape: BoxShape.circle,
+                      border: isToday ? null : (hasClass ? Border.all(color: AppColors.teacherRole.withOpacity(0.5)) : null),
+                    ),
+                    child: Center(
+                      child: Text(
+                        "${cellDate.day}",
+                        style: TextStyle(
+                          color: isToday 
+                              ? Colors.white 
+                              : (hasClass ? (isDark ? Colors.white : AppColors.textPrimary) : subTextColor.withOpacity(0.5)),
+                          fontWeight: isToday || hasClass ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildTaskTile(String title, String subtitle, IconData icon, Color color, Color textColor, Color subTextColor, bool isDark) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF161822) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: isDark ? [] : [
-             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: TextStyle(color: textColor, fontWeight: FontWeight.w600, fontSize: 14)),
-                const SizedBox(height: 4),
-                Text(subtitle, style: TextStyle(color: subTextColor, fontSize: 12)),
-              ],
-            ),
-          ),
-          Icon(Icons.arrow_forward_ios, color: subTextColor, size: 14),
-        ],
-      ),
-    );
+  // Helper: Get number of days in a month
+  int _getDaysInMonth(DateTime date) {
+    final firstDayNextMonth = (date.month < 12) 
+        ? DateTime(date.year, date.month + 1, 1) 
+        : DateTime(date.year + 1, 1, 1);
+    return firstDayNextMonth.subtract(const Duration(days: 1)).day;
+  }
+
+  // Helper: Get Month Name
+  String _getMonthName(int month) {
+    const months = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    return months[month - 1];
+  }
+
+  // Helper: Check if class is scheduled for a specific date
+  bool _isClassScheduled(UserModel user, DateTime date) {
+    final weekdays = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    final startOfWeek = date.weekday - 1; // 0 for Monday
+    
+    // Safety check
+    if (startOfWeek < 0 || startOfWeek >= weekdays.length) return false;
+    
+    final dayName = weekdays[startOfWeek];
+    
+    // Check user schedule for this day
+    return user.schedule.any((session) => 
+        (session['day'])?.toLowerCase() == dayName.toLowerCase());
   }
 
   Widget _buildPerformanceAnalytics(Color textColor, Color subTextColor, bool isDark) {
@@ -978,9 +1266,9 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       padding: const EdgeInsets.all(32),
       width: double.infinity,
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E2130) : Colors.white.withValues(alpha: 0.5),
+        color: isDark ? const Color(0xFF1E2130) : Colors.white.withOpacity(0.5),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.withValues(alpha: 0.1)),
+        border: Border.all(color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey.withOpacity(0.1)),
       ),
       child: Column(
         children: [
@@ -1010,4 +1298,3 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     );
   }
 }
-

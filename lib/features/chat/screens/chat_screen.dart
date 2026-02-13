@@ -9,12 +9,14 @@ class ChatScreen extends StatefulWidget {
   final String otherUserId;
   final String otherUserName;
   final String otherUserImage;
+  final String? currentUserRole; // Add this
 
   const ChatScreen({
     super.key,
     required this.otherUserId,
     required this.otherUserName,
     required this.otherUserImage,
+    this.currentUserRole,
   });
 
   @override
@@ -41,7 +43,12 @@ class _ChatScreenState extends State<ChatScreen> {
     _messageController.clear();
 
     try {
-      await _chatService.sendMessage(_currentUserId!, widget.otherUserId, message);
+      await _chatService.sendMessage(
+        _currentUserId!, 
+        widget.otherUserId, 
+        message, 
+        senderRole: widget.currentUserRole
+      );
       _scrollToBottom();
     } catch (e) {
       if (mounted) {
@@ -145,6 +152,17 @@ class _ChatScreenState extends State<ChatScreen> {
         child: Column(
           crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
           children: [
+            if (!isMe && message.senderRole != null) ...[
+              Text(
+                message.senderRole == 'head_teacher' ? 'Head Teacher' : 'Teacher',
+                style: TextStyle(
+                  color: message.senderRole == 'head_teacher' ? AppColors.headTeacherRole : AppColors.teacherRole,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 2),
+            ],
             Text(
               message.message,
               style: TextStyle(color: isMe ? Colors.white : AppColors.textPrimary, fontSize: 16),

@@ -1,11 +1,13 @@
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/models/user_model.dart';
 import '../../teacher/services/teacher_api.dart';
+import '../../../../core/models/teacher_attendance_model.dart';
+import '../../../../core/services/teacher_attendance_service.dart';
+import '../../teacher/screens/attendance_summary_screen.dart'; // For AttendanceChartPainter
 
 class ManageTeacherProfileScreen extends StatefulWidget {
   final UserModel teacher;
@@ -17,6 +19,7 @@ class ManageTeacherProfileScreen extends StatefulWidget {
 
 class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen> {
   final _teacherApi = TeacherApi();
+  final _attendanceService = TeacherAttendanceService();
   late TextEditingController _nameController;
   late TextEditingController _imageUrlController;
   late List<Map<String, String>> _schedule;
@@ -129,7 +132,7 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                   
                   // Day Dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedDay,
+                    initialValue: selectedDay,
                     decoration: InputDecoration(
                       labelText: 'Day',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -198,7 +201,7 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                       Expanded(
                         flex: 2,
                         child: DropdownButtonFormField<String>(
-                          value: selectedClass,
+                          initialValue: selectedClass,
                           decoration: InputDecoration(
                             labelText: 'Class',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -212,7 +215,7 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
                       Expanded(
                         flex: 1,
                         child: DropdownButtonFormField<String>(
-                          value: selectedSection,
+                          initialValue: selectedSection,
                           decoration: InputDecoration(
                             labelText: 'Sec',
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -228,7 +231,7 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
 
                   // Subject Dropdown
                   DropdownButtonFormField<String>(
-                    value: selectedSubject,
+                    initialValue: selectedSubject,
                     decoration: InputDecoration(
                       labelText: 'Subject',
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -333,6 +336,8 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildProfileSection(),
+            const SizedBox(height: 32),
+            _buildAttendanceSection(),
             const SizedBox(height: 32),
             _buildAssignedClassesSection(),
             const SizedBox(height: 32),
@@ -450,6 +455,87 @@ class _ManageTeacherProfileScreenState extends State<ManageTeacherProfileScreen>
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
     }
+  }
+
+  Widget _buildAttendanceSection() {
+    return StreamBuilder<List<TeacherAttendanceModel>>(
+      stream: _attendanceService.getTeacherAttendance(widget.teacher.uid),
+      builder: (context, snapshot) {
+        final records = snapshot.data ?? [];
+        int present = records.where((r) => r.status == 'present').length;
+        int absent = records.where((r) => r.status == 'absent').length;
+        int total = records.length;
+
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Row(
+                children: [
+                   Icon(Icons.bar_chart, color: AppColors.primary),
+                   SizedBox(width: 8),
+                   Text('Attendance Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  SizedBox(
+                    height: 120,
+                    width: 120,
+                    child: CustomPaint(
+                      painter: AttendanceChartPainter(
+                        present: present.toDouble(),
+                        absent: absent.toDouble(),
+                        total: total == 0 ? 1 : total.toDouble(),
+                        isEmpty: total == 0,
+                      ),
+                      child: Center(
+                        child: Text(
+                          total == 0 ? "0%" : "${(present / total * 100).toStringAsFixed(0)}%",
+                          style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStatLite('Present', present.toString(), Colors.green),
+                        const SizedBox(height: 8),
+                        _buildStatLite('Absent', absent.toString(), Colors.red),
+                        const SizedBox(height: 8),
+                        _buildStatLite('Total Days', total.toString(), Colors.blue),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStatLite(String label, String value, Color color) {
+    return Row(
+      children: [
+        Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+        const SizedBox(width: 8),
+        Text(label, style: const TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+        const Spacer(),
+        Text(value, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+      ],
+    );
   }
 
 
