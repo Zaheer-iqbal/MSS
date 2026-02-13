@@ -8,6 +8,8 @@ import '../../school/services/school_api.dart';
 import 'staff_list_screen.dart';
 import 'head_teacher_profile_screen.dart';
 import 'student_list_by_class_screen.dart';
+import 'events_screen.dart';
+import 'reports_screen.dart';
 
 class HeadDashboard extends StatelessWidget {
   const HeadDashboard({super.key});
@@ -92,20 +94,10 @@ class HeadDashboard extends StatelessWidget {
                           ),
                         ),
                       ),
-                       StatCard(
-                        title: AppLocalizations.of(context)!.feeStatus,
-                        value: '78%', // Placeholder
-                        icon: Icons.account_balance_wallet,
-                        color: Colors.orange,
-                      ),
-                       StatCard(
-                        title: AppLocalizations.of(context)!.rating,
-                        value: '4.8', // Placeholder
-                        icon: Icons.star,
-                        color: Colors.amber,
-                      ),
                     ],
                   ),
+                  const SizedBox(height: 24),
+                  _buildAnalyticsSection(context),
                   const SizedBox(height: 32),
                    Text(
                     AppLocalizations.of(context)!.administrativeTools,
@@ -139,22 +131,22 @@ class HeadDashboard extends StatelessWidget {
                         onTap: () {},
                       ),
                       ActionIcon(
-                        label: AppLocalizations.of(context)!.fees,
-                        icon: Icons.payments,
-                        color: AppColors.headTeacherRole,
-                        onTap: () {},
-                      ),
-                      ActionIcon(
                         label: AppLocalizations.of(context)!.events,
                         icon: Icons.event,
                         color: AppColors.headTeacherRole,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const EventsScreen()),
+                        ),
                       ),
                       ActionIcon(
                         label: AppLocalizations.of(context)!.reports,
                         icon: Icons.analytics,
                         color: AppColors.headTeacherRole,
-                        onTap: () {},
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ReportsScreen()),
+                        ),
                       ),
                       ActionIcon(
                         label: AppLocalizations.of(context)!.settings,
@@ -170,6 +162,89 @@ class HeadDashboard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildAnalyticsSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Analytics Overview',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Attendance Density', style: TextStyle(fontWeight: FontWeight.bold)),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text('Live', style: TextStyle(color: Colors.green, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 150,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    _buildBar('Mon', 0.6, Colors.indigo),
+                    _buildBar('Tue', 0.8, Colors.teal),
+                    _buildBar('Wed', 0.4, Colors.orange),
+                    _buildBar('Thu', 0.9, Colors.pink),
+                    _buildBar('Fri', 0.7, Colors.blue),
+                    _buildBar('Sat', 0.3, Colors.amber),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBar(String label, double heightFactor, Color color) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        Container(
+          width: 30,
+          height: 100 * heightFactor,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.8),
+            borderRadius: BorderRadius.circular(8),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+      ],
     );
   }
 }

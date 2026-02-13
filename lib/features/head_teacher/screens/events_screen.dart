@@ -17,14 +17,14 @@ class EventsScreen extends StatelessWidget {
         itemCount: 5,
         itemBuilder: (context, index) {
           return Card(
-            margin: const EdgeInsets.bottom(16),
+            margin: const EdgeInsets.only(bottom: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: ListTile(
               contentPadding: const EdgeInsets.all(16),
               leading: Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: AppColors.headTeacherRole.withOpacity(0.1),
+                  color: AppColors.headTeacherRole.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.event, color: AppColors.headTeacherRole),
