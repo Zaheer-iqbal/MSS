@@ -13,6 +13,8 @@ import '../../../core/providers/theme_provider.dart'; // Added this import
 import '../../../../core/models/teacher_attendance_model.dart';
 import '../../../../core/services/teacher_attendance_service.dart';
 import '../../../../core/services/teacher_dismissal_service.dart';
+import '../../../core/providers/locale_provider.dart';
+import '../../../l10n/app_localizations.dart';
 import 'teacher_profile_screen.dart';
 import 'class_selection_screen.dart';
 
@@ -37,6 +39,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   bool _isLoading = true;
   String? _lastFetchDate; // To reset dismissals daily
   StreamSubscription<DocumentSnapshot>? _userSubscription;
+  StreamSubscription<TeacherAttendanceModel?>? _attendanceSubscription;
   Timer? _autoSlideTimer;
 
   UserModel? _currentUser;
@@ -66,6 +69,22 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           _currentUser = updatedUser;
         });
         _fetchDashboardData();
+        _setupAttendanceSubscription(uid);
+      }
+    });
+  }
+
+  void _setupAttendanceSubscription(String uid) {
+    _attendanceSubscription?.cancel();
+    final today = DateTime.now();
+    _attendanceSubscription = _teacherAttendanceService
+        .getAttendanceStreamForDate(uid, DateTime(today.year, today.month, today.day))
+        .listen((attendance) {
+      if (mounted) {
+        setState(() {
+          _isAttendanceMarked = attendance != null;
+          _attendanceStatus = attendance?.status ?? '';
+        });
       }
     });
   }
@@ -73,6 +92,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   @override
   void dispose() {
     _userSubscription?.cancel();
+    _attendanceSubscription?.cancel();
     _autoSlideTimer?.cancel();
     _pageController.dispose();
     _schedulePageController.dispose();
@@ -177,17 +197,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         });
       }
 
-      // Check Teacher Attendance
-      final today = DateTime.now();
-      final attendance = await _teacherAttendanceService.getAttendanceForDate(
-          user.uid, DateTime(today.year, today.month, today.day));
       if (mounted) {
-        setState(() {
-          _isAttendanceMarked = attendance != null;
-          _attendanceStatus = attendance?.status ?? '';
-        });
-
-
         _startAutoSlide();
       }
     }
@@ -258,11 +268,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       await _teacherAttendanceService.markAttendance(attendance);
       
       if (mounted) {
-        setState(() {
-          _isAttendanceMarked = true;
-          _attendanceStatus = status;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Attendance marked successfully!'), backgroundColor: Colors.green));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(AppLocalizations.of(context)!.attendanceMarkedSuccess), 
+          backgroundColor: Colors.green
+        ));
       }
     } catch (e) {
       if (mounted) {
@@ -290,7 +299,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  "My Attendance",
+                  AppLocalizations.of(context)!.myAttendance,
                   style: TextStyle(
                     fontSize: 18, 
                     fontWeight: FontWeight.bold,
@@ -307,8 +316,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   ),
                   child: Text(
                      _isAttendanceMarked 
-                        ? (_attendanceStatus == 'present' ? 'Present' : 'Absent')
-                        : 'Not Marked',
+                        ? (_attendanceStatus == 'present' ? AppLocalizations.of(context)!.present : AppLocalizations.of(context)!.absent)
+                        : AppLocalizations.of(context)!.notMarked,
                      style: TextStyle(
                        color: _isAttendanceMarked 
                           ? (_attendanceStatus == 'present' ? Colors.green : Colors.red)
@@ -356,7 +365,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     child: ElevatedButton.icon(
                       onPressed: () => _markTeacherAttendance(user, 'present'),
                       icon: const Icon(Icons.check_circle_outline),
-                      label: const Text('Mark Present'),
+                      label: Text(AppLocalizations.of(context)!.markPresent),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
                         foregroundColor: Colors.white,
@@ -370,7 +379,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                     child: OutlinedButton.icon(
                       onPressed: () => _markTeacherAttendance(user, 'absent'),
                       icon: const Icon(Icons.cancel_outlined),
-                      label: const Text('Mark Absent'),
+                      label: Text(AppLocalizations.of(context)!.markAbsent),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
                         side: const BorderSide(color: Colors.red),
@@ -438,7 +447,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   _buildTeacherAttendanceCard(user, isDark),
                   const SizedBox(height: 30),
                   Text(
-                    'Quick Actions',
+                    AppLocalizations.of(context)!.quickActions,
                     style: TextStyle(
                       color: textColor,
                       fontSize: 18,
@@ -467,7 +476,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
              Text(
-              'Hello,',
+              '${AppLocalizations.of(context)!.hello},',
               style: TextStyle(
                 color: subTextColor,
                 fontSize: 16,
@@ -485,10 +494,22 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         Row(
           children: [
-            IconButton(
-              onPressed: () {}, // TODO: Notifications
-              icon: Icon(Icons.notifications_none, color: textColor),
-            ),
+             IconButton(
+               onPressed: () {
+                 final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+                 if (localeProvider.isUrdu) {
+                   localeProvider.setLocale(const Locale('en'));
+                 } else {
+                   localeProvider.setLocale(const Locale('ur'));
+                 }
+               },
+               icon: Icon(Icons.language, color: textColor),
+               tooltip: 'Change Language',
+             ),
+             IconButton(
+               onPressed: () {}, // TODO: Notifications
+               icon: Icon(Icons.notifications_none, color: textColor),
+             ),
             const SizedBox(width: 8),
             GestureDetector(
               onTap: () {
@@ -715,7 +736,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              'Daily Schedule',
+              AppLocalizations.of(context)!.dailySchedule,
               style: TextStyle(
                 color: textColor,
                 fontSize: 18,
@@ -769,17 +790,17 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   }
 
   Widget _buildEmptyScheduleView() {
-    return const Column(
+    return Column(
       children: [
-        Icon(Icons.calendar_today_outlined, color: Colors.white70, size: 40),
-        SizedBox(height: 16),
+        const Icon(Icons.calendar_today_outlined, color: Colors.white70, size: 40),
+        const SizedBox(height: 16),
         Text(
-          'No Class Scheduled',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+          AppLocalizations.of(context)!.noClassScheduled,
+          style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
         ),
         Text(
-          'Enjoy your day!',
-          style: TextStyle(color: Colors.white70, fontSize: 14),
+          AppLocalizations.of(context)!.enjoyYourDay,
+          style: const TextStyle(color: Colors.white70, fontSize: 14),
         ),
       ],
     );
@@ -935,7 +956,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       children: [
         _buildDarkActionCard(
           context,
-          'Attendance',
+          AppLocalizations.of(context)!.attendance,
           Icons.person_outline,
           Colors.blue,
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Attendance'))),
@@ -943,7 +964,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         _buildDarkActionCard(
           context,
-          'Students',
+          AppLocalizations.of(context)!.students,
           Icons.people_outline,
           Colors.orange,
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Student List'))),
@@ -951,7 +972,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         _buildDarkActionCard(
           context,
-          'Results',
+          AppLocalizations.of(context)!.results,
           Icons.description_outlined,
           Colors.green,
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Exam'))),
@@ -959,7 +980,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         ),
         _buildDarkActionCard(
           context,
-          'Assignments',
+          AppLocalizations.of(context)!.assignments,
           Icons.assignment_outlined,
           Colors.purple,
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ClassSelectionScreen(assessmentType: 'Assignment'))),
@@ -1024,7 +1045,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'My Teaching Calendar',
+          AppLocalizations.of(context)!.myTeachingCalendar,
           style: TextStyle(
             color: textColor,
             fontSize: 18,
@@ -1191,13 +1212,13 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
            Text(
-            'Performance Analytics',
+            AppLocalizations.of(context)!.performanceAnalytics,
             style: TextStyle(color: textColor, fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
-          _buildAnalyticsRow('Attendance Rate', '94%', 0.94, Colors.blue, subTextColor),
+          _buildAnalyticsRow(AppLocalizations.of(context)!.attendanceRate, '94%', 0.94, Colors.blue, subTextColor),
           const SizedBox(height: 20),
-          _buildAnalyticsRow('Assignments Completed', '82%', 0.82, Colors.purple, subTextColor),
+          _buildAnalyticsRow(AppLocalizations.of(context)!.assignmentsCompleted, '82%', 0.82, Colors.purple, subTextColor),
           const SizedBox(height: 20),
            Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1275,12 +1296,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           const Icon(Icons.school_outlined, size: 80, color: AppColors.teacherRole),
           const SizedBox(height: 24),
           Text(
-            'Ready to Start?',
+            AppLocalizations.of(context)!.readyToStart,
             style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: textColor),
           ),
           const SizedBox(height: 12),
           Text(
-            'You haven\'t been assigned any classes yet. Once the Head Teacher assigns you classes, you\'ll see your students and schedule here.',
+            AppLocalizations.of(context)!.noClassesAssigned,
             textAlign: TextAlign.center,
             style: TextStyle(color: subTextColor, fontSize: 14),
           ),
@@ -1291,7 +1312,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
               backgroundColor: AppColors.teacherRole,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            child: const Text('Refresh Dashboard', style: TextStyle(color: Colors.white)),
+            child: Text(AppLocalizations.of(context)!.refreshDashboard, style: const TextStyle(color: Colors.white)),
           ),
         ],
       ),

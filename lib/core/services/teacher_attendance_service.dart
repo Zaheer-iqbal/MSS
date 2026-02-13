@@ -5,14 +5,12 @@ class TeacherAttendanceService {
   final CollectionReference _attendanceCollection =
       FirebaseFirestore.instance.collection('teacher_attendance');
 
+  String _getDocId(String teacherId, DateTime date) {
+    return "${teacherId}_${date.year}-${date.month}-${date.day}";
+  }
+
   Future<void> markAttendance(TeacherAttendanceModel attendance) async {
-    // Generate a deterministic ID based on teacherId and date if no ID is provided
-    // This prevents the "non-empty string" error and ensures only one record per day
-    String docId = attendance.id;
-    if (docId.isEmpty) {
-      final dateStr = "${attendance.date.year}-${attendance.date.month}-${attendance.date.day}";
-      docId = "${attendance.teacherId}_$dateStr";
-    }
+    final docId = _getDocId(attendance.teacherId, attendance.date);
     await _attendanceCollection.doc(docId).set(attendance.toMap());
   }
 
@@ -31,21 +29,27 @@ class TeacherAttendanceService {
     });
   }
 
+  Stream<TeacherAttendanceModel?> getAttendanceStreamForDate(String teacherId, DateTime date) {
+    final docId = _getDocId(teacherId, date);
+    return _attendanceCollection.doc(docId).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return TeacherAttendanceModel.fromMap(
+          doc.data() as Map<String, dynamic>,
+          doc.id,
+        );
+      }
+      return null;
+    });
+  }
+
   Future<TeacherAttendanceModel?> getAttendanceForDate(String teacherId, DateTime date) async {
-    final startOfDay = DateTime(date.year, date.month, date.day);
-    final endOfDay = startOfDay.add(const Duration(days: 1));
-
-    final querySnapshot = await _attendanceCollection
-        .where('teacherId', isEqualTo: teacherId)
-        .where('date', isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('date', isLessThan: Timestamp.fromDate(endOfDay))
-        .limit(1)
-        .get();
-
-    if (querySnapshot.docs.isNotEmpty) {
+    final docId = _getDocId(teacherId, date);
+    final doc = await _attendanceCollection.doc(docId).get();
+    
+    if (doc.exists && doc.data() != null) {
       return TeacherAttendanceModel.fromMap(
-        querySnapshot.docs.first.data() as Map<String, dynamic>,
-        querySnapshot.docs.first.id,
+        doc.data() as Map<String, dynamic>,
+        doc.id,
       );
     }
     return null;

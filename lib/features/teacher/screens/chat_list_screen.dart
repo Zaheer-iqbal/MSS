@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -64,11 +65,15 @@ class _ChatListScreenState extends State<ChatListScreen> {
               return ListTile(
                 leading: CircleAvatar(
                   backgroundColor: AppColors.primary.withOpacity(0.1),
-                  backgroundImage: otherUserImage.isNotEmpty ? NetworkImage(otherUserImage) : null,
+                  backgroundImage: (otherUserImage.isNotEmpty && otherUserImage.startsWith('http')) 
+                      ? NetworkImage(otherUserImage) 
+                      : null,
                   child: otherUserImage.isEmpty 
                     ? Text(otherUserName.isNotEmpty ? otherUserName[0] : '?', 
                         style: const TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold))
-                    : null,
+                    : (!otherUserImage.startsWith('http') 
+                        ? ClipOval(child: Image.memory(base64Decode(otherUserImage), fit: BoxFit.cover, width: 40, height: 40)) 
+                        : null),
                 ),
                 title: Text(
                   otherUserName,

@@ -110,7 +110,7 @@ class ChatService {
                 chatData['otherUserName'] = studentDoc['fatherName'] != null 
                     ? "${studentDoc['fatherName']} (Parent)" 
                     : "Parent of ${studentDoc['name']}";
-                chatData['otherUserImage'] = ''; // Parents usually don't have image in students collection
+                chatData['otherUserImage'] = studentDoc['imageUrl'] ?? ''; 
                 chats.add(chatData);
               }
             }

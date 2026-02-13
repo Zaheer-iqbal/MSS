@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import '../../../l10n/app_localizations.dart';
 import '../../../widgets/dashboard_widgets.dart';
 import '../../school/services/school_api.dart';
 import 'staff_list_screen.dart';
@@ -23,8 +24,8 @@ class HeadDashboard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             DashboardHeader(
-              name: user?.name ?? 'Head Teacher',
-              role: 'Head Teacher',
+              name: user?.name ?? AppLocalizations.of(context)!.headTeacher,
+              role: AppLocalizations.of(context)!.headTeacher,
               roleColor: AppColors.headTeacherRole,
               imageUrl: user?.imageUrl, 
               onLogout: () => authService.signOut(),
@@ -44,9 +45,9 @@ class HeadDashboard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'School Overview',
-                    style: TextStyle(
+                   Text(
+                    AppLocalizations.of(context)!.schoolOverview,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -64,7 +65,7 @@ class HeadDashboard extends StatelessWidget {
                       StreamBuilder<int>(
                         stream: SchoolApi().getStudentCount(),
                         builder: (context, snapshot) => StatCard(
-                          title: 'Total Students',
+                          title: AppLocalizations.of(context)!.totalStudents,
                           value: '${snapshot.data ?? 0}',
                           icon: Icons.school,
                           color: Colors.indigo,
@@ -79,20 +80,26 @@ class HeadDashboard extends StatelessWidget {
                       StreamBuilder<int>(
                         stream: SchoolApi().getTeacherCount(),
                         builder: (context, snapshot) => StatCard(
-                          title: 'Total Staff',
+                          title: AppLocalizations.of(context)!.totalStaff,
                           value: '${snapshot.data ?? 0}',
                           icon: Icons.badge,
                           color: Colors.teal,
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const StaffListScreen(),
+                            ),
+                          ),
                         ),
                       ),
-                      const StatCard(
-                        title: 'Fee Status',
+                       StatCard(
+                        title: AppLocalizations.of(context)!.feeStatus,
                         value: '78%', // Placeholder
                         icon: Icons.account_balance_wallet,
                         color: Colors.orange,
                       ),
-                      const StatCard(
-                        title: 'Rating',
+                       StatCard(
+                        title: AppLocalizations.of(context)!.rating,
                         value: '4.8', // Placeholder
                         icon: Icons.star,
                         color: Colors.amber,
@@ -100,9 +107,9 @@ class HeadDashboard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 32),
-                  const Text(
-                    'Administrative Tools',
-                    style: TextStyle(
+                   Text(
+                    AppLocalizations.of(context)!.administrativeTools,
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -117,7 +124,7 @@ class HeadDashboard extends StatelessWidget {
                     mainAxisSpacing: 24,
                     children: [
                       ActionIcon(
-                        label: 'Staff',
+                        label: AppLocalizations.of(context)!.staff,
                         icon: Icons.assignment_ind,
                         color: AppColors.headTeacherRole,
                         onTap: () => Navigator.push(
@@ -126,31 +133,31 @@ class HeadDashboard extends StatelessWidget {
                         ),
                       ),
                       ActionIcon(
-                        label: 'Admissions',
+                        label: AppLocalizations.of(context)!.admissions,
                         icon: Icons.group_add,
                         color: AppColors.headTeacherRole,
                         onTap: () {},
                       ),
                       ActionIcon(
-                        label: 'Fees',
+                        label: AppLocalizations.of(context)!.fees,
                         icon: Icons.payments,
                         color: AppColors.headTeacherRole,
                         onTap: () {},
                       ),
                       ActionIcon(
-                        label: 'Events',
+                        label: AppLocalizations.of(context)!.events,
                         icon: Icons.event,
                         color: AppColors.headTeacherRole,
                         onTap: () {},
                       ),
                       ActionIcon(
-                        label: 'Reports',
+                        label: AppLocalizations.of(context)!.reports,
                         icon: Icons.analytics,
                         color: AppColors.headTeacherRole,
                         onTap: () {},
                       ),
                       ActionIcon(
-                        label: 'Settings',
+                        label: AppLocalizations.of(context)!.settings,
                         icon: Icons.settings,
                         color: AppColors.headTeacherRole,
                         onTap: () {},

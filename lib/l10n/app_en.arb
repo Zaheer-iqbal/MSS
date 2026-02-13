@@ -1,0 +1,70 @@
+{
+  "@@locale": "en",
+  "appTitle": "MSS",
+  "hello": "Hello",
+  "myAttendance": "My Attendance",
+  "present": "Present",
+  "absent": "Absent",
+  "notMarked": "Not Marked",
+  "markPresent": "Mark Present",
+  "markAbsent": "Mark Absent",
+  "attendanceMarkedSuccess": "Attendance marked successfully!",
+  "quickActions": "Quick Actions",
+  "attendance": "Attendance",
+  "students": "Students",
+  "results": "Results",
+  "assignments": "Assignments",
+  "myTeachingCalendar": "My Teaching Calendar",
+  "dailySchedule": "Daily Schedule",
+  "noClassScheduled": "No Class Scheduled",
+  "enjoyYourDay": "Enjoy your day!",
+  "performanceAnalytics": "Performance Analytics",
+  "attendanceRate": "Attendance Rate",
+  "assignmentsCompleted": "Assignments Completed",
+  "quizScoresAvg": "Quiz Scores (Avg)",
+  "readyToStart": "Ready to Start?",
+  "noClassesAssigned": "You haven't been assigned any classes yet. Once the Head Teacher assigns you classes, you'll see your students and schedule here.",
+  "refreshDashboard": "Refresh Dashboard",
+  "schoolStaff": "School Staff",
+  "searchStaffHint": "Search staff by name...",
+  "noStaffFound": "No staff members found",
+  "noMatchingStaffFound": "No matching staff members found",
+  "classesAssigned": "{count} Classes Assigned",
+  "@classesAssigned": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "schoolOverview": "School Overview",
+  "totalStudents": "Total Students",
+  "totalStaff": "Total Staff",
+  "feeStatus": "Fee Status",
+  "rating": "Rating",
+  "administrativeTools": "Administrative Tools",
+  "staff": "Staff",
+  "admissions": "Admissions",
+  "fees": "Fees",
+  "events": "Events",
+  "reports": "Reports",
+  "settings": "Settings",
+  "headTeacher": "Head Teacher",
+  "selectYourRole": "Select Your Role",
+  "continueAs": "Continue as {role}",
+  "@continueAs": {
+    "placeholders": {
+      "role": {
+        "type": "String"
+      }
+    }
+  },
+  "school": "School",
+  "teacher": "Teacher",
+  "parent": "Parent",
+  "student": "Student",
+  "appAppName": "My Smart School",
+  "authWelcomeSub": "Create an account or login to continue",
+  "schoolAdmin": "School Admin",
+  "loginExisting": "Login to Existing Account"
+}

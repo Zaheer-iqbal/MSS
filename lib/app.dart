@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/constants/app_colors.dart';
 import '../core/providers/theme_provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import '../core/providers/locale_provider.dart';
 import '../features/auth/screens/role_selection_screen.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/school/screens/school_dashboard.dart';
@@ -10,6 +12,7 @@ import '../features/teacher/screens/teacher_main_screen.dart';
 import '../features/head_teacher/screens/head_teacher_main_screen.dart';
 import '../features/parent/screens/parent_dashboard.dart';
 import '../features/student/screens/student_main_screen.dart';
+import 'l10n/app_localizations.dart';
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -17,6 +20,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final localeProvider = Provider.of<LocaleProvider>(context);
 
     return MultiProvider(
       providers: [
@@ -27,6 +31,17 @@ class MyApp extends StatelessWidget {
         themeMode: themeProvider.themeMode,
         theme: ThemeProvider.lightTheme,
         darkTheme: ThemeProvider.darkTheme,
+        locale: localeProvider.locale,
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('en'),
+          Locale('ur'),
+        ],
         home: const SplashScreen(),
         debugShowCheckedModeBanner: false,
       ),

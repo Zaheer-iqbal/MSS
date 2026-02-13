@@ -76,14 +76,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
               style: TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 16),
-            // Responsive layout: Column for small screens, Row for larger
-            ? _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat'),
-          Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                   _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat'),
-                ],
-              ),
+            isSmallScreen 
+              ? _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat')
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _buildGuidanceItem(Icons.family_restroom_outlined, Colors.orange, 'Parent Chat'),
+                  ],
+                ),
           ],
         ),
         actions: [
@@ -338,7 +338,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                       _buildSmallChatAction(
                         icon: Icons.family_restroom_outlined, 
                         color: Colors.orange, 
-                        onTap: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent', student.phone),
+                        onTap: () => _messageUser(context, student.parentEmail, '${student.fatherName} (Parent)', 'Parent', student.phone, student.imageUrl),
                       ),
                   ],
                 ),
@@ -631,7 +631,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
   }
 
   // Message Action Helper
-  void _messageUser(BuildContext context, String email, String name, String userType, String phone) async {
+  void _messageUser(BuildContext context, String email, String name, String userType, String phone, String profileImage) async {
     if (email.isEmpty) {
       if (context.mounted) {
         // Fallback to SMS if email is missing
@@ -663,7 +663,7 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
             builder: (context) => ChatScreen(
               otherUserId: uid,
               otherUserName: name,
-              otherUserImage: '', // Can be fetched if needed
+              otherUserImage: profileImage, 
               currentUserRole: _userRole,
             ),
           ),

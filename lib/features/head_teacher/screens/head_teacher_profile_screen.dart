@@ -47,15 +47,48 @@ class _HeadTeacherProfileScreenState extends State<HeadTeacherProfileScreen> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedFile = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 25);
+      final pickedFile = await _picker.pickImage(source: source, imageQuality: 25);
       if (pickedFile != null) {
         setState(() => _selectedImage = File(pickedFile.path));
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error picking image: $e')));
+      }
     }
+  }
+
+  void _showImageSourceActionSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.headTeacherRole),
+              title: const Text('Take Photo'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.headTeacherRole),
+              title: const Text('Choose from Gallery'),
+              onTap: () {
+                Navigator.pop(context);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _saveProfile() async {
@@ -98,7 +131,9 @@ class _HeadTeacherProfileScreenState extends State<HeadTeacherProfileScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Profile updated successfully!'), backgroundColor: Colors.green),
           );
-          Navigator.pop(context);
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -230,7 +265,7 @@ class _HeadTeacherProfileScreenState extends State<HeadTeacherProfileScreen> {
             bottom: 0,
             right: 0,
             child: GestureDetector(
-              onTap: _pickImage,
+              onTap: _showImageSourceActionSheet,
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: const BoxDecoration(

@@ -2,19 +2,67 @@ import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/models/student_model.dart';
 import '../../school/services/school_api.dart';
+import '../../teacher/screens/student_profile_screen.dart';
 
-class StudentListByClassScreen extends StatelessWidget {
+class StudentListByClassScreen extends StatefulWidget {
   const StudentListByClassScreen({super.key});
+
+  @override
+  State<StudentListByClassScreen> createState() => _StudentListByClassScreenState();
+}
+
+class _StudentListByClassScreenState extends State<StudentListByClassScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  bool _isSearching = false;
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Students by Class'),
+        title: _isSearching
+            ? TextField(
+                controller: _searchController,
+                autofocus: true,
+                decoration: const InputDecoration(
+                  hintText: 'Search by name or roll no...',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey),
+                ),
+                style: const TextStyle(color: AppColors.textPrimary),
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value.toLowerCase();
+                  });
+                },
+              )
+            : const Text('Students by Class'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
+        actions: [
+          IconButton(
+            icon: Icon(_isSearching ? Icons.close : Icons.search),
+            onPressed: () {
+              setState(() {
+                if (_isSearching) {
+                  _isSearching = false;
+                  _searchController.clear();
+                  _searchQuery = '';
+                } else {
+                  _isSearching = true;
+                }
+              });
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<List<StudentModel>>(
         stream: SchoolApi().getAllStudents(),
@@ -25,7 +73,17 @@ class StudentListByClassScreen extends StatelessWidget {
           if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
-          final students = snapshot.data ?? [];
+          
+          List<StudentModel> students = snapshot.data ?? [];
+          
+          // Apply search filter
+          if (_searchQuery.isNotEmpty) {
+            students = students.where((student) {
+              return student.name.toLowerCase().contains(_searchQuery) ||
+                     student.rollNo.toString().contains(_searchQuery);
+            }).toList();
+          }
+
           if (students.isEmpty) {
             return const Center(child: Text('No students found.'));
           }
@@ -105,7 +163,12 @@ class StudentListByClassScreen extends StatelessWidget {
                       subtitle: Text('Roll No: ${student.rollNo}'),
                       trailing: const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.grey),
                       onTap: () {
-                        // Potential future improvement: Nav to student detail
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => StudentProfileScreen(student: student),
+                          ),
+                        );
                       },
                     ),
                   )),

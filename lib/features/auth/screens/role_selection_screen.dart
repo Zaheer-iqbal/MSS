@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_colors.dart';
+import '../../../../core/providers/locale_provider.dart';
+import 'package:provider/provider.dart';
+import '../../../l10n/app_localizations.dart';
 import 'register_screen.dart';
 import 'login_screen.dart';
 
@@ -31,7 +34,21 @@ class RoleSelectionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const SizedBox(height: 60),
+                   Align(
+                    alignment: Alignment.topRight,
+                    child: IconButton(
+                      onPressed: () {
+                        final localeProvider = Provider.of<LocaleProvider>(context, listen: false);
+                        if (localeProvider.isUrdu) {
+                          localeProvider.setLocale(const Locale('en'));
+                        } else {
+                          localeProvider.setLocale(const Locale('ur'));
+                        }
+                      },
+                      icon: const Icon(Icons.language, color: AppColors.primary),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
                   const Center(
                     child: Icon(
                       Icons.school_rounded,
@@ -39,10 +56,10 @@ class RoleSelectionScreen extends StatelessWidget {
                       color: AppColors.primary,
                     ),
                   ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'My Smart School',
-                    style: TextStyle(
+                  const SizedBox(height: 16),
+                  Text(
+                    AppLocalizations.of(context)!.appAppName,
+                    style: const TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textPrimary,
@@ -51,48 +68,39 @@ class RoleSelectionScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 8),
-                  const Text(
-                    'Create an account or login to continue',
-                    style: TextStyle(
+                  Text(
+                    AppLocalizations.of(context)!.authWelcomeSub,
+                    style: const TextStyle(
                       fontSize: 16,
                       color: AppColors.textSecondary,
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 60),
-                  Expanded(
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      mainAxisSpacing: 20,
-                      crossAxisSpacing: 20,
-                      childAspectRatio: 0.9,
-                      children: [
-                        _RoleCard(
-                          title: 'School Admin',
-                          icon: Icons.account_balance_rounded,
-                          color: AppColors.schoolRole,
-                          role: 'school',
-                        ),
-                        _RoleCard(
-                          title: 'Teacher',
-                          icon: Icons.assignment_ind_rounded,
-                          color: AppColors.teacherRole,
-                          role: 'teacher',
-                        ),
-                        _RoleCard(
-                          title: 'Head Teacher',
-                          icon: Icons.military_tech_rounded,
-                          color: AppColors.headTeacherRole,
-                          role: 'head_teacher',
-                        ),
-                        _RoleCard(
-                          title: 'Parent',
-                          icon: Icons.family_restroom_rounded,
-                          color: AppColors.parentRole,
-                          role: 'parent',
-                        ),
-                      ],
-                    ),
+                  const SizedBox(height: 40),
+                  const SizedBox(height: 10),
+                  Column(
+                    children: [
+                      _RoleCard(
+                        title: AppLocalizations.of(context)!.headTeacher,
+                        icon: Icons.military_tech_rounded,
+                        color: AppColors.headTeacherRole,
+                        role: 'head_teacher',
+                      ),
+                      const SizedBox(height: 16),
+                      _RoleCard(
+                        title: AppLocalizations.of(context)!.teacher,
+                        icon: Icons.assignment_ind_rounded,
+                        color: AppColors.teacherRole,
+                        role: 'teacher',
+                      ),
+                      const SizedBox(height: 16),
+                      _RoleCard(
+                        title: AppLocalizations.of(context)!.parent,
+                        icon: Icons.family_restroom_rounded,
+                        color: AppColors.parentRole,
+                        role: 'parent',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 24),
                   const SizedBox(height: 24),
@@ -112,9 +120,9 @@ class RoleSelectionScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
-                        'Login to Existing Account',
-                        style: TextStyle(
+                      child: Text(
+                        AppLocalizations.of(context)!.loginExisting,
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: AppColors.primary,
@@ -164,40 +172,43 @@ class _RoleCard extends StatelessWidget {
           );
         }
       },
-      borderRadius: BorderRadius.circular(24),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(color: Colors.black.withOpacity(0.03)),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
+              color: color.withOpacity(0.06),
+              blurRadius: 15,
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 36, color: color),
+              child: Icon(icon, size: 28, color: color),
             ),
-            const SizedBox(height: 16),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.textPrimary,
+            const SizedBox(width: 20),
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
               ),
             ),
+            Icon(Icons.arrow_forward_ios_rounded, size: 16, color: color.withOpacity(0.3)),
           ],
         ),
       ),

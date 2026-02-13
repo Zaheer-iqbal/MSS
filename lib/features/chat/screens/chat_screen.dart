@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -80,8 +81,14 @@ class _ChatScreenState extends State<ChatScreen> {
         title: Row(
           children: [
             CircleAvatar(
-              backgroundImage: widget.otherUserImage.isNotEmpty ? NetworkImage(widget.otherUserImage) : null,
-              child: widget.otherUserImage.isEmpty ? Text(widget.otherUserName[0]) : null,
+              backgroundImage: (widget.otherUserImage.isNotEmpty && widget.otherUserImage.startsWith('http')) 
+                  ? NetworkImage(widget.otherUserImage) 
+                  : null,
+              child: widget.otherUserImage.isEmpty 
+                  ? Text(widget.otherUserName[0]) 
+                  : (!widget.otherUserImage.startsWith('http') 
+                      ? ClipOval(child: Image.memory(base64Decode(widget.otherUserImage), fit: BoxFit.cover, width: 40, height: 40)) 
+                      : null),
             ),
             const SizedBox(width: 12),
             Column(
@@ -143,7 +150,7 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 5,
               offset: const Offset(0, 2),
             ),
@@ -154,9 +161,13 @@ class _ChatScreenState extends State<ChatScreen> {
           children: [
             if (!isMe && message.senderRole != null) ...[
               Text(
-                message.senderRole == 'head_teacher' ? 'Head Teacher' : 'Teacher',
+                message.senderRole == 'head_teacher' 
+                  ? 'Head Teacher' 
+                  : (message.senderRole == 'parent' ? 'Parent' : 'Teacher'),
                 style: TextStyle(
-                  color: message.senderRole == 'head_teacher' ? AppColors.headTeacherRole : AppColors.teacherRole,
+                  color: message.senderRole == 'head_teacher' 
+                    ? AppColors.headTeacherRole 
+                    : (message.senderRole == 'parent' ? AppColors.parentRole : AppColors.teacherRole),
                   fontSize: 10,
                   fontWeight: FontWeight.bold,
                 ),
