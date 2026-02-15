@@ -11,8 +11,8 @@ class AttendanceService {
       // Use date as part of the document ID to prevent duplicate marking for the same student on the same day
       String dateStr =
           "${record.date.year}-${record.date.month}-${record.date.day}";
-      // Include classId in docId to ensure unique attendance per class per student per day
-      String docId = "${record.classId}_${record.studentId}_$dateStr";
+      // Include classId and subject in docId to ensure unique attendance per class per subject per student per day
+      String docId = "${record.classId}_${record.subject.replaceAll(' ', '_')}_${record.studentId}_$dateStr";
 
       await _firestore.collection('attendance').doc(docId).set(record.toMap());
 
@@ -20,12 +20,12 @@ class AttendanceService {
       final notificationService = NotificationService();
       String statusTitle = record.status.toUpperCase();
       String msg = record.status == 'present' 
-          ? 'Student is Present in class today.' 
-          : 'Attention: Student is Absent from class today.';
+          ? 'Student is Present in ${record.subject} today.' 
+          : 'Attention: Student is Absent from ${record.subject} today.';
       
       await notificationService.notifyParent(
         studentId: record.studentId,
-        title: 'Attendance Update: $statusTitle',
+        title: 'Attendance Update: $statusTitle - ${record.subject}',
         body: msg,
         data: {
           'type': 'attendance',
@@ -57,16 +57,26 @@ class AttendanceService {
   // Fetch attendance for a class on a specific date (for Teachers)
   Future<List<AttendanceRecord>> getClassAttendance(
     String classId,
-    DateTime date,
-  ) async {
+    DateTime date, {
+    String? subject,
+  }) async {
     try {
 
       // We fetch by classId only to avoid the composite index error for (classId + date range)
       // This is a temporary fix to make the app work immediately for the user.
-      QuerySnapshot snapshot = await _firestore
-          .collection('attendance')
-          .where('classId', isEqualTo: classId)
-          .get();
+      QuerySnapshot snapshot;
+      if (subject != null) {
+        snapshot = await _firestore
+            .collection('attendance')
+            .where('classId', isEqualTo: classId)
+            .where('subject', isEqualTo: subject)
+            .get();
+      } else {
+        snapshot = await _firestore
+            .collection('attendance')
+            .where('classId', isEqualTo: classId)
+            .get();
+      }
 
 
       final allRecords = snapshot.docs

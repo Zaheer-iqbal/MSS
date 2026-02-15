@@ -57,9 +57,25 @@ class AuthService extends ChangeNotifier {
     required String password,
     required String name,
     required String role,
+    String phone = '',
+    String schoolName = '',
+    String schoolNumber = '',
+    DateTime? assignedDate,
+    String? securityKey,
   }) async {
     try {
-      // 1. Create Auth User
+      // 1. Verification for Head Teacher
+      if (role == 'head_teacher') {
+        if (phone.length != 11) {
+          return "Mobile number must be exactly 11 digits";
+        }
+        final lastFour = phone.substring(phone.length - 4);
+        if (securityKey != lastFour) {
+          return "Invalid Security Key. It must be the last 4 digits of your mobile number.";
+        }
+      }
+
+      // 2. Create Auth User
       UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
@@ -70,16 +86,20 @@ class AuthService extends ChangeNotifier {
         // Sync name with Firebase Auth profile
         await user.updateDisplayName(name);
 
-        // 2. Create User Model
+        // 3. Create User Model
         UserModel newUser = UserModel(
           uid: user.uid,
           email: email,
           name: name,
           role: role,
           createdAt: DateTime.now(),
+          phone: phone,
+          schoolName: schoolName,
+          schoolNumber: schoolNumber,
+          assignedDate: assignedDate,
         );
 
-        // 3. Save to Firestore
+        // 4. Save to Firestore
         await _firestore.collection('users').doc(user.uid).set(newUser.toMap());
         await _saveDeviceToken(user.uid); // Save token
 

@@ -16,6 +16,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _schoolNameController = TextEditingController();
+  final _securityKeyController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
 
@@ -24,6 +27,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     _nameController.dispose();
+    _phoneController.dispose();
+    _schoolNameController.dispose();
+    _securityKeyController.dispose();
     super.dispose();
   }
 
@@ -37,6 +43,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passwordController.text.trim(),
         name: _nameController.text.trim(),
         role: widget.role,
+        phone: _phoneController.text.trim(),
+        schoolName: _schoolNameController.text.trim(),
+
+        securityKey: _securityKeyController.text.trim(),
       );
 
       if (mounted) {
@@ -120,6 +130,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ? 'Please enter your name'
                               : null,
                         ),
+                        const SizedBox(height: 20),
+                        _buildTextField(
+                          controller: _phoneController,
+                          label: 'Mobile Number',
+                          icon: Icons.phone_outlined,
+                          keyboardType: TextInputType.phone,
+                          validator: (value) =>
+                              (value == null || value.length != 11)
+                              ? 'Enter a valid 11-digit mobile number'
+                              : null,
+                        ),
+                        if (widget.role == 'head_teacher') ...[
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            controller: _schoolNameController,
+                            label: 'School Name',
+                            icon: Icons.school_outlined,
+                            validator: (value) => (value == null || value.isEmpty)
+                                ? 'Please enter school name'
+                                : null,
+                          ),
+                          const SizedBox(height: 20),
+                          _buildTextField(
+                            controller: _securityKeyController,
+                            label: 'Security Key',
+                            icon: Icons.vpn_key_outlined,
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) return 'Enter security key';
+                              if (_phoneController.text.length == 11) {
+                                final expected = _phoneController.text.substring(7);
+                                if (value != expected) return 'Incorrect key';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                         const SizedBox(height: 20),
                         _buildTextField(
                           controller: _emailController,

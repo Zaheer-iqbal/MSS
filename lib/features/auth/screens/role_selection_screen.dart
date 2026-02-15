@@ -108,39 +108,8 @@ class RoleSelectionScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const LoginScreen(),
-                          ),
-                        );
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(
-                          color: AppColors.primary,
-                          width: 2,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: Text(
-                        AppLocalizations.of(context)!.loginExisting,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ),
+                  const Spacer(),
+                  // Removed generic login button as requested for premium flow
                   const SizedBox(height: 20),
                 ],
               ),
@@ -165,11 +134,136 @@ class _RoleCard extends StatelessWidget {
     required this.role,
   });
 
+  void _showAuthOptionSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              alignment: Alignment.center,
+              margin: const EdgeInsets.only(bottom: 24),
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 32, color: color),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome $title',
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Please select an option to continue',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close sheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: color,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: const Text(
+                'LOGIN',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            OutlinedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close sheet
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RegisterScreen(role: role),
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                side: BorderSide(color: color, width: 2),
+                foregroundColor: color,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+              child: const Text(
+                'CREATE NEW ACCOUNT',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
         if (role == 'parent') {
+          // Parent flow remains distinct (Login only)
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -177,10 +271,8 @@ class _RoleCard extends StatelessWidget {
             ),
           );
         } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => RegisterScreen(role: role)),
-          );
+          // Teacher & Head Teacher flow -> Show Options
+          _showAuthOptionSheet(context);
         }
       },
       borderRadius: BorderRadius.circular(20),

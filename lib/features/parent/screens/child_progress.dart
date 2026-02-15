@@ -58,62 +58,118 @@ class ChildProgress extends StatelessWidget {
             );
           }
 
-          return ListView.separated(
+          // Group records by subject
+          final Map<String, List<AttendanceRecord>> groupedRecords = {};
+          for (var record in records) {
+            final subject = record.subject.isEmpty ? 'General' : record.subject;
+            groupedRecords.putIfAbsent(subject, () => []);
+            groupedRecords[subject]!.add(record);
+          }
+
+          final subjects = groupedRecords.keys.toList()..sort();
+
+          return ListView.builder(
             padding: const EdgeInsets.all(16),
-            itemCount: records.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemCount: subjects.length,
             itemBuilder: (context, index) {
-              final record = records[index];
-              return Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.03),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(10),
-                      decoration: BoxDecoration(
-                        color: _getStatusColor(record.status).withOpacity(0.1),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _getStatusIcon(record.status),
-                        color: _getStatusColor(record.status),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            record.status.toUpperCase(),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: _getStatusColor(record.status),
+              final subject = subjects[index];
+              final subjectRecords = groupedRecords[subject]!;
+              
+              // Sort records by date descending
+              subjectRecords.sort((a, b) => b.date.compareTo(a.date));
+
+              final absentCount = subjectRecords.where((r) => r.status == 'absent').length;
+              final totalCount = subjectRecords.length;
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          subject,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                        if (absentCount > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              '$absentCount Absences',
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          Text(
-                            "${record.date.day}/${record.date.month}/${record.date.year}",
-                            style: const TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  ...subjectRecords.map((record) => Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.03),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: _getStatusColor(record.status).withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            _getStatusIcon(record.status),
+                            color: _getStatusColor(record.status),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                record.status.toUpperCase(),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: _getStatusColor(record.status),
+                                ),
+                              ),
+                              Text(
+                                "${record.date.day}/${record.date.month}/${record.date.year}",
+                                style: const TextStyle(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  )).toList(),
+                  const SizedBox(height: 16),
+                ],
               );
             },
           );

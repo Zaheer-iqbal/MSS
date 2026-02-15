@@ -8,6 +8,7 @@ class AttendanceRecord {
   final String status; // 'present', 'absent', 'late'
   final String markedBy; // Teacher UID
   final String classId;
+  final String subject;
 
   AttendanceRecord({
     this.id,
@@ -17,6 +18,7 @@ class AttendanceRecord {
     required this.status,
     required this.markedBy,
     required this.classId,
+    required this.subject,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +29,7 @@ class AttendanceRecord {
       'status': status,
       'markedBy': markedBy,
       'classId': classId,
+      'subject': subject,
     };
   }
 
@@ -52,6 +55,7 @@ class AttendanceRecord {
       status: map['status'] ?? 'present',
       markedBy: map['markedBy'] ?? '',
       classId: map['classId'] ?? '',
+      subject: map['subject'] ?? '',
     );
   }
 }

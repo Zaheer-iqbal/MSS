@@ -109,7 +109,6 @@ class _ManageTeacherProfileScreenState
     String? selectedDay;
     String? selectedClass;
     String? selectedSection;
-    String? selectedSubject;
     String? selectedRoom;
     TimeOfDay? startTime;
     TimeOfDay? endTime;
@@ -123,31 +122,18 @@ class _ManageTeacherProfileScreenState
       'Saturday',
       'Sunday',
     ];
-    final List<String> classes = [
-      '1st',
-      '2nd',
-      '3rd',
-      '4th',
-      '5th',
-      '6th',
-      '7th',
-      '8th',
-      '9th',
-      '10th',
-    ];
-    final List<String> sections = ['A', 'B', 'C', 'D'];
-    final List<String> subjects = [
-      'Mathematics',
-      'English',
-      'Science',
-      'History',
-      'Geography',
-      'Computer Science',
-      'Art',
-      'Physical Education',
-      'Urdu',
-      'Islamiyat',
-    ];
+
+    // Get unique classes from assigned classes
+    final List<String> availableClasses = _assignedClasses
+        .map((e) => e['classId'] ?? '')
+        .where((c) => c.isNotEmpty)
+        .toSet()
+        .toList();
+
+    // Sections will be filtered dynamically based on selected class
+    List<String> availableSections = [];
+
+    final TextEditingController subjectController = TextEditingController();
 
     showModalBottomSheet(
       context: context,
@@ -313,14 +299,25 @@ class _ManageTeacherProfileScreenState
                               vertical: 12,
                             ),
                           ),
-                          items: classes
+                          items: availableClasses
                               .map(
                                 (c) =>
                                     DropdownMenuItem(value: c, child: Text(c)),
                               )
                               .toList(),
-                          onChanged: (val) =>
-                              setSheetState(() => selectedClass = val),
+                          onChanged: (val) {
+                            setSheetState(() {
+                              selectedClass = val;
+                              selectedSection = null; // Reset section
+                              // Filter sections for the selected class
+                              availableSections = _assignedClasses
+                                  .where((e) => e['classId'] == val)
+                                  .map((e) => e['section'] ?? '')
+                                  .where((s) => s.isNotEmpty)
+                                  .toSet()
+                                  .toList();
+                            });
+                          },
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -338,7 +335,7 @@ class _ManageTeacherProfileScreenState
                               vertical: 12,
                             ),
                           ),
-                          items: sections
+                          items: availableSections
                               .map(
                                 (s) =>
                                     DropdownMenuItem(value: s, child: Text(s)),
@@ -352,9 +349,9 @@ class _ManageTeacherProfileScreenState
                   ),
                   const SizedBox(height: 16),
 
-                  // Subject Dropdown
-                  DropdownButtonFormField<String>(
-                    initialValue: selectedSubject,
+                  // Subject TextField
+                  TextField(
+                    controller: subjectController,
                     decoration: InputDecoration(
                       labelText: 'Subject',
                       border: OutlineInputBorder(
@@ -365,11 +362,6 @@ class _ManageTeacherProfileScreenState
                         vertical: 12,
                       ),
                     ),
-                    items: subjects
-                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                        .toList(),
-                    onChanged: (val) =>
-                        setSheetState(() => selectedSubject = val),
                   ),
                   const SizedBox(height: 16),
 
@@ -400,7 +392,7 @@ class _ManageTeacherProfileScreenState
                             endTime != null &&
                             selectedClass != null &&
                             selectedSection != null &&
-                            selectedSubject != null) {
+                            subjectController.text.isNotEmpty) {
                           final timeString =
                               '${startTime!.format(context)} - ${endTime!.format(context)}';
                           setState(() {
@@ -409,7 +401,7 @@ class _ManageTeacherProfileScreenState
                               'time': timeString,
                               'classId': selectedClass!,
                               'section': selectedSection!,
-                              'subject': selectedSubject!,
+                              'subject': subjectController.text.trim(),
                               'room': selectedRoom ?? 'N/A',
                             });
                           });

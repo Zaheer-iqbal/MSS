@@ -6,11 +6,13 @@ import '../../../core/services/attendance_service.dart';
 class AttendanceSummaryScreen extends StatefulWidget {
   final String classId;
   final String section;
+  final String subject;
 
   const AttendanceSummaryScreen({
     super.key,
     required this.classId,
     required this.section,
+    required this.subject,
   });
 
   @override
@@ -39,6 +41,7 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
       final records = await _attendanceService.getClassAttendance(
         compositeClassId,
         _selectedDate,
+        subject: widget.subject,
       );
 
       int present = 0;
@@ -78,7 +81,7 @@ class _AttendanceSummaryScreenState extends State<AttendanceSummaryScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text('Attendance: ${widget.classId}-${widget.section}'),
+        title: Text('Attendance: ${widget.subject}'),
         backgroundColor: Colors.white,
         foregroundColor: AppColors.textPrimary,
         elevation: 0,

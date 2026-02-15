@@ -155,6 +155,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
         'Thursday',
         'Friday',
         'Saturday',
+        'Saturday',
         'Sunday'
       ];
       final now = DateTime.now();
@@ -468,9 +469,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                             const SizedBox(height: 30),
                             _buildDailyScheduleCard(displayUser, textColor, subTextColor),
                             const SizedBox(height: 30),
-                            _buildEventsSection(context, isDark, textColor, subTextColor),
-                            const SizedBox(height: 30),
-                            _buildTeacherAttendanceCard(displayUser, isDark),
+                             _buildTeacherAttendanceCard(displayUser, isDark),
                             const SizedBox(height: 30),
                             Text(
                               AppLocalizations.of(context)!.quickActions,
@@ -484,6 +483,10 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                             _buildQuickActionsGrid(context, isDark, displayUser),
                             const SizedBox(height: 30),
                             _buildClassCalendar(context, displayUser, textColor, subTextColor, isDark),
+                            const SizedBox(height: 30),
+                            _buildEventsSection(context, isDark, textColor, subTextColor),
+                            const SizedBox(height: 30),
+
                           ],
                         ],
                       ),
@@ -1025,100 +1028,12 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
           () => Navigator.push(context, MaterialPageRoute(builder: (context) => TeacherTimetableScreen(teacherUid: user!.uid))),
           isDark
         ),
-        _buildDarkActionCard(
-          context,
-          'Broadcast',
-          Icons.campaign_outlined,
-          Colors.orange,
-          () => _showBroadcastDialog(context, user),
-          isDark
-        ),
+
       ],
     );
   }
 
-  void _showBroadcastDialog(BuildContext context, UserModel? user) {
-    if (user == null) return;
-    final controller = TextEditingController();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.campaign, color: Colors.orange),
-            SizedBox(width: 8),
-            Text('Broadcast Update'),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'This message will be sent to ALL parents in your assigned classes.',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              maxLines: 4,
-              decoration: InputDecoration(
-                hintText: 'Enter your announcement...',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () async {
-              if (controller.text.trim().isNotEmpty) {
-                final msg = controller.text.trim();
-                Navigator.pop(context);
-                
-                // Show loading
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Sending broadcast...')),
-                );
 
-                // Send notifications to each assigned class topic
-                for (var cls in user.assignedClasses) {
-                  final classId = cls['classId'];
-                  final section = cls['section'];
-                  if (classId != null && section != null) {
-                    // In a production app, you'd have topics like 'class_1_A'
-                    // For now, we'll send a general 'all_parents' or 'all' notification
-                    // demonstrating the capability.
-                    await NotificationService().sendTopicNotification(
-                      topic: 'all_parents', 
-                      title: 'Update from ${user.name}',
-                      body: msg,
-                      data: {
-                        'type': 'broadcast',
-                        'teacherId': user.uid,
-                        'classId': classId,
-                        'section': section,
-                      },
-                    );
-                  }
-                }
-
-                if (mounted) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Broadcast sent successfully!'), backgroundColor: Colors.green),
-                  );
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange, foregroundColor: Colors.white),
-            child: const Text('SEND TO ALL'),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildDarkActionCard(BuildContext context, String title, IconData icon, Color color, VoidCallback onTap, bool isDark) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -1175,6 +1090,8 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
   Widget _buildClassCalendar(BuildContext context, UserModel? user, Color textColor, Color subTextColor, bool isDark) {
     if (user == null) return const SizedBox.shrink();
 
+    // Use specific date instead of 'now' if navigating months (future improvement)
+    // For now, assume displaying current month
     final now = DateTime.now();
     final firstDayOfMonth = DateTime(now.year, now.month, 1);
     final startingWeekday = firstDayOfMonth.weekday; // 1 = Mon, 7 = Sun
@@ -1266,9 +1183,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
                   final isCurrentMonth = cellDate.month == now.month;
                   if (!isCurrentMonth) return const SizedBox.shrink();
 
-                  final isToday = cellDate.year == now.year && 
-                                 cellDate.month == now.month && 
-                                 cellDate.day == now.day;
+                  final isToday = _isSameDay(cellDate, DateTime.now());
                   
                   // Check if class is scheduled for this weekday
                   final hasClass = _isClassScheduled(user, cellDate);
@@ -1303,6 +1218,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
     ],
   );
 }
+
   // Helper: Get Month Name
   String _getMonthName(int month) {
     const months = [
@@ -1310,6 +1226,11 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       'July', 'August', 'September', 'October', 'November', 'December'
     ];
     return months[month - 1];
+  }
+
+  // Helper: Check for same day
+  bool _isSameDay(DateTime a, DateTime b) {
+    return a.year == b.year && a.month == b.month && a.day == b.day;
   }
 
   // Helper: Check if class is scheduled for a specific date
@@ -1493,4 +1414,7 @@ class _TeacherDashboardState extends State<TeacherDashboard> {
       ],
     );
   }
+
+
 }
+

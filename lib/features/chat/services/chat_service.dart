@@ -49,7 +49,7 @@ class ChatService {
             'chatId': chatId,
             'otherUserId': receiverId,
             'lastMessage': message,
-            'timestamp': timestamp.toIso8601String(),
+            'timestamp': FieldValue.serverTimestamp(),
             'unreadCount': 0, // Sent by me, so 0 unread
           });
 
@@ -63,7 +63,7 @@ class ChatService {
             'chatId': chatId,
             'otherUserId': senderId,
             'lastMessage': message,
-            'timestamp': timestamp.toIso8601String(),
+            'timestamp': FieldValue.serverTimestamp(),
             'unreadCount': FieldValue.increment(
               1,
             ), // Increment unread for receiver

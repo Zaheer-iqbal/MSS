@@ -53,10 +53,12 @@ class _EnrollStudentScreenState extends State<EnrollStudentScreen> {
     void updateCredentials() {
       if (_nameController.text.isNotEmpty &&
           _rollNoController.text.isNotEmpty) {
-        final nameSnippet = _nameController.text.split(' ').first.toLowerCase();
-        _parentEmailController.text =
-            '${nameSnippet}_${_rollNoController.text}@school.com';
-        _parentPasswordController.text = 'pass${_rollNoController.text}';
+        // Remove spaces and lowercase the name
+        final nameSnippet = _nameController.text.replaceAll(' ', '').toLowerCase();
+        final rollNo = _rollNoController.text.trim();
+        
+        _parentEmailController.text = '${nameSnippet}${rollNo}@gmail.com';
+        _parentPasswordController.text = '${nameSnippet}${rollNo}';
       }
     }
 

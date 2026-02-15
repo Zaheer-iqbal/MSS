@@ -12,6 +12,9 @@ class UserModel {
   final String phone;
   final String address;
   final String? fcmToken;
+  final String schoolName;
+  final String schoolNumber;
+  final DateTime? assignedDate;
 
   UserModel({
     required this.uid,
@@ -25,6 +28,9 @@ class UserModel {
     this.phone = '',
     this.address = '',
     this.fcmToken,
+    this.schoolName = '',
+    this.schoolNumber = '',
+    this.assignedDate,
   });
 
   // Convert to Map for Firestore
@@ -41,6 +47,9 @@ class UserModel {
       'phone': phone,
       'address': address,
       'fcmToken': fcmToken,
+      'schoolName': schoolName,
+      'schoolNumber': schoolNumber,
+      'assignedDate': assignedDate?.toIso8601String(),
     };
   }
 
@@ -50,7 +59,7 @@ class UserModel {
       uid: map['uid'] ?? '',
       email: map['email'] ?? '',
       name: map['name'] ?? '',
-      role: map['role'] ?? 'parent', // Default to parent if unknown
+      role: map['role'] ?? 'parent',
       createdAt: DateTime.parse(map['createdAt']),
       assignedClasses: List<Map<String, String>>.from(
         (map['assignedClasses'] ?? []).map(
@@ -64,6 +73,11 @@ class UserModel {
       phone: map['phone'] ?? '',
       address: map['address'] ?? '',
       fcmToken: map['fcmToken'],
+      schoolName: map['schoolName'] ?? '',
+      schoolNumber: map['schoolNumber'] ?? '',
+      assignedDate: map['assignedDate'] != null
+          ? DateTime.parse(map['assignedDate'])
+          : null,
     );
   }
 }

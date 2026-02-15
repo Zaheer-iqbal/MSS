@@ -63,8 +63,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
               final otherUserName = chat['otherUserName'] ?? 'Unknown';
               final otherUserImage = chat['otherUserImage'] ?? '';
               final lastMessage = chat['lastMessage'] ?? '';
-              final timestamp =
-                  DateTime.tryParse(chat['timestamp'] ?? '') ?? DateTime.now();
+              final dynamic rawTimestamp = chat['timestamp'];
+              DateTime timestamp;
+              if (rawTimestamp is Timestamp) {
+                timestamp = rawTimestamp.toDate();
+              } else {
+                timestamp = DateTime.tryParse(rawTimestamp?.toString() ?? '') ?? DateTime.now();
+              }
               final unreadCount = chat['unreadCount'] ?? 0;
               final otherUserId = chat['otherUserId'];
 

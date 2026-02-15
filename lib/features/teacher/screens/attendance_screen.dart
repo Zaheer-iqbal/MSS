@@ -11,11 +11,13 @@ import 'attendance_summary_screen.dart';
 class AttendanceScreen extends StatefulWidget {
   final String classId;
   final String section;
+  final String? subject;
 
   const AttendanceScreen({
     super.key,
     required this.classId,
     required this.section,
+    this.subject, // Optional initial subject
   });
 
   @override
@@ -32,18 +34,50 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   List<StudentModel> _students = [];
 
   bool _checkingStatus = true;
+  String? _selectedSubject;
+  List<String> _availableSubjects = [];
 
   @override
   void initState() {
     super.initState();
+    _selectedSubject = widget.subject;
+    _loadAvailableSubjects();
+  }
+
+  void _loadAvailableSubjects() {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final user = authService.currentUser;
+    if (user != null) {
+      // Get unique subjects for this class/section from teacher's schedule or assignedClasses
+      // If subjects aren't explicitly in assignedClasses, we look at schedule
+      final subjects = user.schedule
+          .where((s) => s['classId'] == widget.classId && s['section'] == widget.section)
+          .map((s) => s['subject'] ?? '')
+          .where((s) => s.isNotEmpty)
+          .toSet()
+          .toList();
+      
+      setState(() {
+        _availableSubjects = subjects;
+        if (_selectedSubject == null && subjects.isNotEmpty) {
+          _selectedSubject = subjects.first;
+        }
+      });
+    }
     _checkTodayAttendance();
   }
 
   Future<void> _checkTodayAttendance() async {
+    if (_selectedSubject == null) {
+      if (mounted) setState(() => _checkingStatus = false);
+      return;
+    }
+
     final compositeId = "${widget.classId}_${widget.section}".toLowerCase();
     final todayRecords = await _attendanceService.getClassAttendance(
       compositeId,
       DateTime.now(),
+      subject: _selectedSubject,
     );
 
     if (todayRecords.isNotEmpty && mounted) {
@@ -54,6 +88,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           builder: (_) => AttendanceSummaryScreen(
             classId: widget.classId,
             section: widget.section,
+            subject: _selectedSubject!,
           ),
         ),
       );
@@ -79,14 +114,15 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
           status: status,
           markedBy: teacherId,
           classId: "${widget.classId}_${widget.section}".toLowerCase(),
+          subject: _selectedSubject ?? 'General',
         );
         await _attendanceService.markAttendance(record);
       }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Attendance marked successfully!'),
+          SnackBar(
+            content: Text('Attendance for $_selectedSubject marked successfully!'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
           ),
@@ -97,6 +133,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             builder: (_) => AttendanceSummaryScreen(
               classId: widget.classId,
               section: widget.section,
+              subject: _selectedSubject ?? 'General',
             ),
           ),
         );
@@ -171,32 +208,70 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 color: Colors.white,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          'Class ${widget.classId}-${widget.section}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Class ${widget.classId}-${widget.section}',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                              ),
+                            ),
+                            Text(
+                              "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                              style: const TextStyle(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
-                          "${_selectedDate.day}/${_selectedDate.month}/${_selectedDate.year}",
+                          '${_students.length} Students',
                           style: const TextStyle(
-                            color: AppColors.textSecondary,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.teacherRole,
                           ),
                         ),
                       ],
                     ),
-                    Text(
-                      '${_students.length} Students',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.teacherRole,
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<String>(
+                          value: _selectedSubject,
+                          isExpanded: true,
+                          hint: const Text('Select Subject'),
+                          items: _availableSubjects.map((subject) {
+                            return DropdownMenuItem(
+                              value: subject,
+                              child: Text(
+                                subject,
+                                style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedSubject = val;
+                                _checkingStatus = true;
+                              });
+                              _checkTodayAttendance();
+                            }
+                          },
+                        ),
                       ),
                     ),
                   ],
